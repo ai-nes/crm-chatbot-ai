@@ -1,26 +1,108 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "tw-shimmer";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ─────────────────────────────────────────────
+   4 brand colors (cam + trắng)
+   ──────────────────────────────────────────── */
+@theme {
+  /* Brand tokens — dùng trực tiếp: bg-brand-orange, text-brand-orange-dark … */
+  --color-brand-white:        #ffffff;
+  --color-brand-orange-light: #ffedd5;
+  --color-brand-orange:       #f97316;
+  --color-brand-orange-dark:  #c2410c;
+
+  /* Semantic tokens → Tailwind utilities (bg-primary, text-primary-foreground …) */
+  --color-background:                  #ffffff;
+  --color-foreground:                  #1c1917;
+
+  --color-primary:                     #f97316;
+  --color-primary-foreground:          #ffffff;
+
+  --color-secondary:                   #ffedd5;
+  --color-secondary-foreground:        #c2410c;
+
+  --color-accent:                      #fff7ed;
+  --color-accent-foreground:           #c2410c;
+
+  --color-muted:                       #f5f5f4;
+  --color-muted-foreground:            #78716c;
+
+  --color-destructive:                 #ef4444;
+  --color-destructive-foreground:      #ffffff;
+
+  --color-border:                      #e7e5e4;
+  --color-input:                       #e7e5e4;
+  --color-ring:                        #f97316;
+
+  --color-card:                        #ffffff;
+  --color-card-foreground:             #1c1917;
+
+  --color-popover:                     #ffffff;
+  --color-popover-foreground:          #1c1917;
+
+  --color-sidebar:                     #fff7ed;
+  --color-sidebar-foreground:          #1c1917;
+  --color-sidebar-primary:             #f97316;
+  --color-sidebar-primary-foreground:  #ffffff;
+  --color-sidebar-accent:              #ffedd5;
+  --color-sidebar-accent-foreground:   #c2410c;
+  --color-sidebar-border:              #fed7aa;
+  --color-sidebar-ring:                #f97316;
+
+  --color-chart-1: #f97316;
+  --color-chart-2: #fb923c;
+  --color-chart-3: #c2410c;
+  --color-chart-4: #ffedd5;
+  --color-chart-5: #fed7aa;
+
+  /* Radius */
+  --radius:    0.625rem;
+  --radius-lg: 0.625rem;
+  --radius-md: 0.425rem;
+  --radius-sm: 0.225rem;
+
+  /* Fonts */
+  --font-sans:  var(--font-quicksand);
+  --font-serif: var(--font-open-sans);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground min-h-screen;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Claude-inspired chat theme */
+.claude-chat {
+  --claude-bg: #faf9f5;
+  --claude-surface: #ffffff;
+  --claude-user-bubble: #e8e4de;
+  --claude-border: #e5e2dc;
+  --claude-text: #1a1915;
+  --claude-muted: #6b6a68;
+  --claude-accent: #c96442;
+  --claude-accent-hover: #b85a3c;
+  --thread-max-width: 48rem;
+}
+
+.claude-chat .aui-md {
+  @apply text-[15px] leading-[1.7] text-[var(--claude-text)];
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+.claude-chat .aui-md p {
+  @apply mb-3 last:mb-0;
+}
+
+.claude-chat .aui-md pre {
+  @apply rounded-xl border border-[var(--claude-border)] bg-[#f5f4f0] font-mono text-[13px];
+}
+
+.claude-chat .aui-md code:not(pre code) {
+  @apply rounded-md bg-[#f0eeea] px-1.5 py-0.5 font-mono text-[13px];
 }
