@@ -53,7 +53,7 @@ export function ChatbotMascot({ className }: ChatbotMascotProps) {
       width={192}
       height={192}
       priority
-      className={cn("mx-auto mb-10 size-48 object-contain", className)}
+      className={cn("mx-auto size-48 object-contain", className)}
     />
   );
 }
