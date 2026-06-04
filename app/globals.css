@@ -100,6 +100,52 @@ html:has(.claude-chat) body {
   background-color: #f5f4ef;
 }
 
+/* Viewport scroll: fill hết vùng trên composer, tránh thanh scroll bị hở */
+.claude-chat .aui-thread-root {
+  height: 100%;
+  min-height: 0;
+}
+
+.claude-chat [data-slot="aui_thread-viewport"] {
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.claude-chat [data-slot="aui_thread-viewport"]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Ẩn scrollbar hệ thống trong toàn bộ chat (vẫn scroll được) */
+.claude-chat .no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.claude-chat .no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Mobile: tránh tràn ngang */
+@media (max-width: 767px) {
+  .claude-chat,
+  .claude-chat .aui-thread-root,
+  .claude-chat [data-slot="aui_thread-viewport"],
+  .claude-chat [data-slot="aui_thread-footer"] {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .claude-chat .aui-thread-welcome-shell {
+    min-height: 0;
+  }
+}
+
 .claude-chat .aui-md {
   @apply text-[15px] leading-[1.7] text-[var(--claude-text)];
   font-family: ui-serif, Georgia, "Times New Roman", serif;
@@ -357,6 +403,23 @@ html:has(.claude-chat) body {
   animation: aui-thinking-token-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes aui-thinking-token-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-0.4em);
+    filter: blur(1px);
+  }
+}
+
+.claude-chat .aui-thinking-token--hide {
+  animation: aui-thinking-token-out 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .claude-chat .aui-thinking-status-pulse {
   animation: aui-thinking-ring-pulse 1.2s ease-in-out infinite;
 }
@@ -374,6 +437,7 @@ html:has(.claude-chat) body {
   .claude-chat .aui-thinking-skeleton-bar,
   .claude-chat .aui-thinking-status-pulse,
   .claude-chat .aui-thinking-token--reveal,
+  .claude-chat .aui-thinking-token--hide,
   .claude-chat .aui-thinking-glow-token,
   .claude-chat .aui-thinking-brain-glow {
     animation: none !important;

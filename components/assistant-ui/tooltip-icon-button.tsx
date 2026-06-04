@@ -20,11 +20,24 @@ export type TooltipIconButtonProps = ComponentPropsWithRef<typeof Button> & {
 export const TooltipIconButton = forwardRef<
   HTMLButtonElement,
   TooltipIconButtonProps
->(({ children, tooltip, side = "bottom", className, ...rest }, ref) => {
+>(({ children, tooltip, side = "bottom", className, variant = "ghost", size = "icon", ...rest }, ref) => {
   return (
     <TooltipProvider delay={0}>
       <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon" {...rest} className={cn("aui-button-icon size-6 p-1", className)} ref={ref} />}><Slot.Slottable>{children}</Slot.Slottable><span className="aui-sr-only sr-only">{tooltip}</span></TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Button
+              variant={variant}
+              size={size}
+              {...rest}
+              className={cn("aui-button-icon size-6 p-1", className)}
+              ref={ref}
+            />
+          }
+        >
+          <Slot.Slottable>{children}</Slot.Slottable>
+          <span className="aui-sr-only sr-only">{tooltip}</span>
+        </TooltipTrigger>
         <TooltipContent side={side}>{tooltip}</TooltipContent>
       </Tooltip>
     </TooltipProvider>

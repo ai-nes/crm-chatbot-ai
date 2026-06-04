@@ -25,6 +25,12 @@ import { VoiceOrb } from "@/components/assistant-ui/voice";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   ActionBarMorePrimitive,
@@ -55,12 +61,33 @@ import {
   RefreshCwIcon,
   SquareIcon,
 } from "lucide-react";
-import type { FC } from "react";
+import type { ComponentPropsWithoutRef, FC } from "react";
+
+const ComposerTooltipButton: FC<
+  ComponentPropsWithoutRef<"button"> & {
+    tooltip: string;
+    side?: "top" | "bottom" | "left" | "right";
+  }
+> = ({ tooltip, side = "bottom", className, children, ...props }) => (
+  <TooltipProvider delay={0}>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button type="button" className={className} {...props} />
+        }
+      >
+        {children}
+        <span className="sr-only">{tooltip}</span>
+      </TooltipTrigger>
+      <TooltipContent side={side}>{tooltip}</TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 export const Thread: FC = () => {
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root @container flex h-full min-h-0 flex-col bg-(--claude-bg)"
+      className="aui-root aui-thread-root @container grid h-full min-h-0 max-w-full flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-(--claude-bg)"
       style={{
         ["--thread-max-width" as string]: "56rem",
         ["--composer-radius" as string]: "28px",
@@ -68,33 +95,30 @@ export const Thread: FC = () => {
       }}
     >
       <ThreadPrimitive.Viewport
-        turnAnchor="bottom"
+        turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto scroll-smooth"
+        className="relative min-h-0 overflow-x-hidden overflow-y-auto scroll-smooth no-scrollbar"
       >
-        <div className="mx-auto flex w-full max-w-(--thread-max-width) min-h-0 flex-1 flex-col px-4 pt-3 md:px-6 md:pt-6">
-          <AuiIf condition={(s) => s.thread.isEmpty}>
-            <ThreadWelcome />
-          </AuiIf>
+        <ThreadViewportContent />
 
-          <div
-            data-slot="aui_message-group"
-            className="mb-4 flex flex-col gap-y-8 empty:hidden md:mb-6 md:gap-y-10"
-          >
-            <ThreadPrimitive.Messages>
-              {() => <ThreadMessage />}
-            </ThreadPrimitive.Messages>
-          </div>
-
-          <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer mt-auto shrink-0 flex flex-col gap-2 overflow-visible bg-(--claude-bg) pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:gap-3 md:pb-8 md:pt-6">
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 mx-auto flex w-full max-w-(--thread-max-width) justify-center px-4 md:px-6">
+          <div className="pointer-events-auto">
             <ThreadScrollToBottom />
-            <Composer />
-            <p className="text-center text-xs text-(--claude-muted)">
-              CRM Chatbot có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.
-            </p>
-          </ThreadPrimitive.ViewportFooter>
+          </div>
         </div>
       </ThreadPrimitive.Viewport>
+
+      <div
+        data-slot="aui_thread-footer"
+        className="aui-thread-footer z-10 flex min-w-0 max-w-full shrink-0 flex-col gap-2 overflow-x-hidden bg-(--claude-bg) px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(245,244,239,0.95)] md:gap-3 md:px-6 md:pb-8 md:pt-4"
+      >
+        <div className="mx-auto w-full max-w-(--thread-max-width)">
+          <Composer />
+          <p className="mt-2.5 text-center text-xs text-(--claude-muted) md:mt-3">
+            CRM Chatbot có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.
+          </p>
+        </div>
+      </div>
     </ThreadPrimitive.Root>
   );
 };
@@ -108,6 +132,37 @@ const ThreadMessage: FC = () => {
   return <AssistantMessage />;
 };
 
+const ThreadViewportContent: FC = () => {
+  const isEmpty = useAuiState((s) => s.thread.isEmpty);
+
+  return (
+    <div
+      className={cn(
+        "mx-auto flex w-full min-w-0 max-w-(--thread-max-width) flex-col overflow-x-hidden px-4 md:px-6",
+        isEmpty ? "min-h-full" : "min-h-0",
+      )}
+    >
+      {isEmpty && (
+        <div className="aui-thread-welcome-shell flex min-h-0 flex-1 flex-col items-center justify-center py-6 md:py-12">
+          <ThreadWelcome />
+        </div>
+      )}
+
+      <div
+        data-slot="aui_message-group"
+        className={cn(
+          "flex flex-col gap-y-8 pb-6 md:gap-y-10 md:pb-8",
+          isEmpty ? "hidden" : "pt-4 md:pt-6",
+        )}
+      >
+        <ThreadPrimitive.Messages>
+          {() => <ThreadMessage />}
+        </ThreadPrimitive.Messages>
+      </div>
+    </div>
+  );
+};
+
 const ThreadScrollToBottom: FC = () => {
   return (
     <ThreadPrimitive.ScrollToBottom
@@ -115,7 +170,7 @@ const ThreadScrollToBottom: FC = () => {
         <TooltipIconButton
           tooltip="Cuộn xuống"
           variant="outline"
-          className="aui-thread-scroll-to-bottom absolute -top-12 z-10 self-center rounded-full border-(--claude-border) bg-(--claude-surface) p-3 shadow-sm hover:bg-(--claude-card) disabled:invisible"
+          className="aui-thread-scroll-to-bottom rounded-full border-(--claude-border) bg-(--claude-surface) p-3 shadow-sm hover:bg-(--claude-card) disabled:invisible"
         />
       }
     >
@@ -141,12 +196,9 @@ const ThreadWelcome: FC = () => {
   }
 
   return (
-    <div className="aui-thread-welcome-root flex min-h-0 flex-1 flex-col justify-between gap-4 py-2 md:justify-center md:gap-6 md:py-0">
-      <div className="aui-thread-welcome-center flex w-full flex-col items-center justify-center text-center">
+    <div className="aui-thread-welcome-root flex w-full min-w-0 max-w-full flex-col items-center gap-6 px-1 text-center md:gap-8">
+      <div className="aui-thread-welcome-center flex w-full flex-col items-center justify-center">
         <WelcomeRotatingHeadline />
-        <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both mt-3 max-w-md text-[15px] text-(--claude-muted) delay-75 duration-300">
-          Tra cứu khách hàng, tạo ticket, xem báo cáo hoặc hỏi về CRM
-        </p>
       </div>
       <ThreadSuggestions />
     </div>
@@ -155,7 +207,7 @@ const ThreadWelcome: FC = () => {
 
 const ThreadSuggestions: FC = () => {
   return (
-    <div className="aui-thread-welcome-suggestions mx-auto mt-4 grid w-full max-w-2xl gap-2 @md:mt-8 @md:grid-cols-2">
+    <div className="aui-thread-welcome-suggestions mx-auto grid w-full min-w-0 max-w-full gap-2 @md:grid-cols-2">
       <ThreadPrimitive.Suggestions>
         {() => <ThreadSuggestionItem />}
       </ThreadPrimitive.Suggestions>
@@ -171,12 +223,12 @@ const ThreadSuggestionItem: FC = () => {
         render={
           <Button
             variant="ghost"
-            className="aui-thread-welcome-suggestion h-auto w-full flex-wrap items-start justify-start gap-1 rounded-2xl border border-(--claude-border-subtle) bg-(--claude-card) px-4 py-3.5 text-start text-sm transition-all hover:border-(--claude-border) hover:bg-[#e5e3dd] @md:flex-col"
+            className="aui-thread-welcome-suggestion h-auto w-full min-w-0 max-w-full flex-wrap items-start justify-start gap-1 rounded-2xl border border-(--claude-border-subtle) bg-(--claude-card) px-4 py-3.5 text-start text-sm transition-all hover:border-(--claude-border) hover:bg-[#e5e3dd] @md:flex-col"
           />
         }
       >
-        <SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1 font-medium text-(--claude-text)" />
-        <SuggestionPrimitive.Description className="aui-thread-welcome-suggestion-text-2 text-(--claude-muted) empty:hidden" />
+        <SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1 font-medium break-words text-(--claude-text)" />
+        <SuggestionPrimitive.Description className="aui-thread-welcome-suggestion-text-2 break-words text-(--claude-muted) empty:hidden" />
       </SuggestionPrimitive.Trigger>
     </div>
   );
@@ -203,12 +255,12 @@ const ComposerInlineDictationOrb: FC = () => {
 
 const Composer: FC = () => {
   return (
-    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
+    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full min-w-0 max-w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone
         render={
           <div
             data-slot="aui_composer-shell"
-            className="flex w-full flex-col gap-2 rounded-(--composer-radius) border border-(--claude-border) bg-(--claude-surface) p-(--composer-padding) shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-shadow focus-within:border-(--claude-border) focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.12)] data-[dragging=true]:border-(--claude-accent) data-[dragging=true]:border-dashed data-[dragging=true]:bg-[#eeecea]"
+            className="flex w-full min-w-0 max-w-full flex-col gap-2 rounded-(--composer-radius) border border-(--claude-border) bg-(--claude-surface) p-(--composer-padding) shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-shadow focus-within:border-(--claude-border) focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.12)] data-[dragging=true]:border-(--claude-accent) data-[dragging=true]:border-dashed data-[dragging=true]:bg-[#eeecea]"
           />
         }
       >
@@ -227,27 +279,22 @@ const Composer: FC = () => {
   );
 };
 
+const COMPOSER_FILLED_BTN =
+  "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[#1a1915] bg-[#1a1915] p-0 text-white shadow-sm transition-colors hover:bg-[#2d2c28] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1915]/30 disabled:pointer-events-none disabled:border-(--claude-border) disabled:bg-(--claude-card) disabled:text-(--claude-muted) disabled:shadow-none";
+
 const ComposerSendButton: FC = () => {
-  const hasText = useAuiState((s) => s.composer.text.trim().length > 0);
   const { disabled, send } = useComposerSend();
 
   return (
-    <button
-      type="button"
+    <ComposerTooltipButton
+      tooltip="Gửi tin nhắn"
       disabled={disabled}
       onClick={() => send()}
-      className={cn(
-        "aui-composer-send inline-flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1915]/30",
-        "disabled:pointer-events-none",
-        hasText && !disabled
-          ? "border-[#1a1915] bg-[#1a1915] text-white shadow-sm hover:bg-[#2d2c28]"
-          : "border-(--claude-border) bg-(--claude-card) text-(--claude-muted)",
-      )}
+      className={cn(COMPOSER_FILLED_BTN, "aui-composer-send")}
       aria-label="Gửi tin nhắn"
     >
       <ArrowUpIcon className="aui-composer-send-icon size-4" />
-    </button>
+    </ComposerTooltipButton>
   );
 };
 
@@ -255,22 +302,20 @@ const ComposerCancelButton: FC = () => {
   const { disabled, cancel } = useComposerCancel();
 
   return (
-    <button
-      type="button"
+    <ComposerTooltipButton
+      tooltip="Dừng tạo phản hồi"
       disabled={disabled}
       onClick={() => cancel()}
-      className={cn(
-        "aui-composer-cancel inline-flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors",
-        "border-[#1a1915] bg-[#1a1915] text-white shadow-sm hover:bg-[#2d2c28]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1915]/30",
-        "disabled:pointer-events-none disabled:border-(--claude-border) disabled:bg-(--claude-card) disabled:text-[#6b6860] disabled:shadow-none",
-      )}
+      className={cn(COMPOSER_FILLED_BTN, "aui-composer-cancel")}
       aria-label="Dừng tạo phản hồi"
     >
       <SquareIcon className="aui-composer-cancel-icon size-3 fill-current" />
-    </button>
+    </ComposerTooltipButton>
   );
 };
+
+const COMPOSER_ICON_BTN =
+  "size-9 shrink-0 cursor-pointer rounded-xl border p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1915]/30";
 
 const ComposerDictationButton: FC = () => {
   const { startDictation, disabled: cantStart } = useComposerDictate();
@@ -280,12 +325,15 @@ const ComposerDictationButton: FC = () => {
   if (cantStart && !isActive) return null;
 
   return (
-    <button
+    <TooltipIconButton
+      tooltip={isActive ? "Dừng ghi âm" : "Ghi âm giọng nói"}
+      side="bottom"
       type="button"
+      variant="ghost"
       onClick={() => (isActive ? aui.composer().stopDictation() : startDictation())}
       className={cn(
-        "aui-composer-dictate inline-flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1915]/30",
+        COMPOSER_ICON_BTN,
+        "aui-composer-dictate",
         isActive
           ? "animate-pulse border-red-400 bg-red-50 text-red-500 hover:bg-red-100"
           : "border-(--claude-border) bg-transparent text-(--claude-muted) hover:bg-(--claude-card) hover:text-(--claude-text)",
@@ -293,18 +341,21 @@ const ComposerDictationButton: FC = () => {
       aria-label={isActive ? "Dừng ghi âm" : "Ghi âm giọng nói"}
     >
       <MicIcon className="size-4" />
-    </button>
+    </TooltipIconButton>
   );
 };
 
 const ComposerAction: FC = () => {
+  const hasText = useAuiState((s) => s.composer.text.trim().length > 0);
+  const isDictating = useAuiState((s) => s.composer.dictation != null);
+  const showSend = hasText && !isDictating;
+
   return (
     <div className="aui-composer-action-wrapper flex items-end justify-between gap-2 pt-1">
       <ComposerAddAttachment />
       <div className="ml-auto flex items-center gap-1">
         <AuiIf condition={(s) => !s.thread.isRunning}>
-          <ComposerDictationButton />
-          <ComposerSendButton />
+          {showSend ? <ComposerSendButton /> : <ComposerDictationButton />}
         </AuiIf>
         <AuiIf condition={(s) => s.thread.isRunning}>
           <ComposerCancelButton />
@@ -337,7 +388,7 @@ const AssistantMessage: FC = () => {
       <div className="min-w-0">
         <div
           data-slot="aui_assistant-message-content"
-          className="text-(--claude-text) wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
+          className="text-(--claude-text) wrap-break-word"
         >
             <MessagePrimitive.GroupedParts
               groupBy={groupPartByType({
@@ -406,7 +457,7 @@ const AssistantActionBar: FC = () => {
     <ActionBarPrimitive.Root
       hideWhenRunning
       autohide="not-last"
-      className="aui-assistant-action-bar-root -ms-1 flex gap-0.5 text-(--claude-muted) opacity-0 transition-opacity group-hover:opacity-100 data-floating:opacity-100"
+      className="aui-assistant-action-bar-root -ms-1 flex gap-0.5 text-(--claude-muted)"
     >
       <ActionBarPrimitive.Copy
         render={
@@ -467,7 +518,7 @@ const UserMessage: FC = () => {
   return (
     <MessagePrimitive.Root
       data-slot="aui_user-message-root"
-      className="fade-in slide-in-from-bottom-1 animate-in flex justify-end duration-200 [contain-intrinsic-size:auto_60px] [content-visibility:auto]"
+      className="fade-in slide-in-from-bottom-1 animate-in flex justify-end duration-200"
       data-role="user"
     >
       <div className="flex max-w-[85%] flex-col items-end gap-2">

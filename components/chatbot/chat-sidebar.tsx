@@ -99,7 +99,7 @@ const SidebarPanel: FC<{
         </div>
       </div>
     </div>
-    <div className="min-h-0 w-full flex-1 overflow-y-auto pb-4">
+    <div className="no-scrollbar min-h-0 w-full flex-1 overflow-y-auto pb-4">
       <ThreadList collapsed={collapsed} />
     </div>
   </aside>
@@ -185,7 +185,7 @@ export const ChatShell: FC<{
           <div className="h-full w-full">{sidebar}</div>
         </div>
       )}
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
   );
 };
