@@ -1,8 +1,7 @@
 import { pickLatestUserMessageForUpstream } from "@/lib/chat/upstream-messages";
 import { type UIMessage } from "ai";
 
-/** Vercel: cần gói hỗ trợ (thường Pro) để > 60s. Giữ stream proxy khi BE RAG lâu sau thinking. */
-export const maxDuration = 140;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const body = (await req.json()) as {
