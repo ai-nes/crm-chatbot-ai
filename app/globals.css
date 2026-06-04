@@ -108,3 +108,273 @@
 .claude-chat .aui-md code:not(pre code) {
   @apply rounded-md bg-[#f0eeea] px-1.5 py-0.5 font-mono text-[13px];
 }
+
+/* Thinking / loading assistant UI */
+@keyframes aui-thinking-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes aui-thinking-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+@keyframes aui-thinking-glow {
+  0%,
+  100% {
+    box-shadow: 0 1px 2px rgba(26, 25, 21, 0.04);
+  }
+  50% {
+    box-shadow: 0 4px 18px rgba(26, 25, 21, 0.08);
+  }
+}
+
+@keyframes aui-thinking-shimmer-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes aui-thinking-brain-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(-6deg);
+  }
+}
+
+@keyframes aui-thinking-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes aui-thinking-cursor {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes aui-thinking-loading-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes aui-thinking-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+@keyframes aui-thinking-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.claude-chat .aui-thinking-loading {
+  animation: aui-thinking-loading-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.claude-chat .aui-thinking-loading-icon {
+  animation: aui-thinking-brain-float 2s ease-in-out infinite;
+}
+
+.claude-chat .aui-thinking-loading-dot {
+  animation: aui-thinking-dot-bounce 1.2s ease-in-out infinite;
+}
+
+.claude-chat .aui-thinking-panel {
+  position: relative;
+  animation: aui-thinking-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.claude-chat .aui-thinking-panel--exit {
+  animation: aui-thinking-exit 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.claude-chat .aui-thinking-panel--streaming {
+  animation:
+    aui-thinking-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both,
+    aui-thinking-glow 2.4s ease-in-out infinite;
+}
+
+.claude-chat .aui-thinking-panel--streaming::before {
+  content: "";
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--claude-muted),
+    transparent
+  );
+  opacity: 0.55;
+  animation: aui-thinking-brain-float 1.8s ease-in-out infinite;
+}
+
+.claude-chat .aui-thinking-panel--streaming::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: aui-thinking-shimmer-sweep 2.8s linear infinite;
+}
+
+.claude-chat .aui-thinking-cursor {
+  animation: aui-thinking-cursor 1s step-end infinite;
+}
+
+.claude-chat .aui-thinking-progress {
+  animation: aui-thinking-progress 1.35s ease-in-out infinite;
+}
+
+.claude-chat .aui-thinking-skeleton-bar {
+  background: linear-gradient(
+    90deg,
+    var(--claude-border) 0%,
+    #f8f7f4 38%,
+    var(--claude-surface) 50%,
+    #f8f7f4 62%,
+    var(--claude-border) 100%
+  );
+  background-size: 200% 100%;
+  animation: aui-thinking-shimmer-sweep 1.25s linear infinite;
+}
+
+/* Looping glow wave on "Suy nghĩ" + brain icon */
+@keyframes aui-thinking-glow-token {
+  0%,
+  100% {
+    opacity: 0.35;
+    color: var(--claude-muted);
+  }
+  50% {
+    opacity: 1;
+    color: var(--claude-text);
+  }
+}
+
+@keyframes aui-thinking-brain-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    color: var(--claude-muted);
+  }
+  50% {
+    opacity: 1;
+    color: var(--claude-text);
+  }
+}
+
+.claude-chat .aui-thinking-glow-token {
+  animation: aui-thinking-glow-token 1.5s ease-in-out infinite;
+}
+
+.claude-chat .aui-thinking-brain-glow {
+  animation: aui-thinking-brain-glow 1.5s ease-in-out infinite;
+}
+
+/* Each new word/char rises in gradually while thinking streams */
+@keyframes aui-thinking-token-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em);
+    filter: blur(1px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.claude-chat .aui-thinking-token--reveal {
+  animation: aui-thinking-token-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.claude-chat .aui-thinking-status-pulse {
+  animation: aui-thinking-ring-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .claude-chat .aui-thinking-loading,
+  .claude-chat .aui-thinking-loading-icon,
+  .claude-chat .aui-thinking-loading-dot,
+  .claude-chat .aui-thinking-panel,
+  .claude-chat .aui-thinking-panel--streaming,
+  .claude-chat .aui-thinking-panel--streaming::before,
+  .claude-chat .aui-thinking-panel--streaming::after,
+  .claude-chat .aui-thinking-cursor,
+  .claude-chat .aui-thinking-progress,
+  .claude-chat .aui-thinking-skeleton-bar,
+  .claude-chat .aui-thinking-status-pulse,
+  .claude-chat .aui-thinking-token--reveal,
+  .claude-chat .aui-thinking-glow-token,
+  .claude-chat .aui-thinking-brain-glow {
+    animation: none !important;
+    opacity: 1;
+    color: var(--claude-muted);
+  }
+
+  .claude-chat .aui-thinking-panel--streaming::before,
+  .claude-chat .aui-thinking-panel--streaming::after {
+    content: none;
+  }
+}

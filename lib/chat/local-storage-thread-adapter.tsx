@@ -10,6 +10,7 @@ import type {
   ThreadHistoryAdapter,
   ThreadMessage,
 } from "@assistant-ui/core";
+import { PERSIST_CHAT_TO_LOCAL_STORAGE } from "@/lib/chat/persist-config";
 import {
   createSimpleTitleAdapter,
   RuntimeAdapterProvider,
@@ -328,23 +329,42 @@ export function createLocalStorageThreadAdapter(
   };
 }
 
+function createBrowserLocalStorage(): AsyncStorageLike {
+  return {
+    getItem: async (key) => {
+      if (typeof window === "undefined") return null;
+      return localStorage.getItem(key);
+    },
+    setItem: async (key, value) => {
+      if (typeof window === "undefined") return;
+      localStorage.setItem(key, value);
+    },
+    removeItem: async (key) => {
+      if (typeof window === "undefined") return;
+      localStorage.removeItem(key);
+    },
+  };
+}
+
+function createSessionMemoryStorage(): AsyncStorageLike {
+  const store = new Map<string, string>();
+  return {
+    getItem: async (key) => store.get(key) ?? null,
+    setItem: async (key, value) => {
+      store.set(key, value);
+    },
+    removeItem: async (key) => {
+      store.delete(key);
+    },
+  };
+}
+
 export function useLocalStorageThreadAdapter(prefix = "@crm-chatbot:") {
   const [adapter] = useState(() =>
     createLocalStorageThreadAdapter({
-      storage: {
-        getItem: async (key) => {
-          if (typeof window === "undefined") return null;
-          return localStorage.getItem(key);
-        },
-        setItem: async (key, value) => {
-          if (typeof window === "undefined") return;
-          localStorage.setItem(key, value);
-        },
-        removeItem: async (key) => {
-          if (typeof window === "undefined") return;
-          localStorage.removeItem(key);
-        },
-      },
+      storage: PERSIST_CHAT_TO_LOCAL_STORAGE
+        ? createBrowserLocalStorage()
+        : createSessionMemoryStorage(),
       prefix,
       titleGenerator: createSimpleTitleAdapter(),
     }),

@@ -3,7 +3,10 @@ import {
   ComposerAttachments,
   UserMessageAttachments,
 } from "@/components/assistant-ui/attachment";
-import { MarkdownText } from "@/components/assistant-ui/markdown-text";
+import {
+  AssistantPendingIndicator,
+  AssistantText,
+} from "@/components/assistant-ui/thinking-block";
 import {
   Reasoning,
   ReasoningContent,
@@ -17,10 +20,10 @@ import {
   ToolGroupTrigger,
 } from "@/components/assistant-ui/tool-group";
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
+import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotating-headline";
 import { VoiceOrb } from "@/components/assistant-ui/voice";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
-import { ChatbotAvatar } from "@/components/chatbot/chatbot-avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -59,7 +62,7 @@ export const Thread: FC = () => {
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-(--claude-bg)"
       style={{
-        ["--thread-max-width" as string]: "48rem",
+        ["--thread-max-width" as string]: "56rem",
         ["--composer-radius" as string]: "28px",
         ["--composer-padding" as string]: "14px",
       }}
@@ -105,10 +108,6 @@ const ThreadMessage: FC = () => {
   return <AssistantMessage />;
 };
 
-const AssistantAvatar: FC = () => (
-  <ChatbotAvatar size="xl" className="mt-1" />
-);
-
 const ThreadScrollToBottom: FC = () => {
   return (
     <ThreadPrimitive.ScrollToBottom
@@ -144,9 +143,7 @@ const ThreadWelcome: FC = () => {
   return (
     <div className="aui-thread-welcome-root my-auto flex min-h-[50vh] grow flex-col justify-center">
       <div className="aui-thread-welcome-center flex w-full flex-col items-center justify-center text-center">
-        <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-serif text-3xl font-normal text-(--claude-text) duration-300 md:text-4xl">
-          Tôi có thể hỗ trợ gì cho bạn?
-        </h1>
+        <WelcomeRotatingHeadline />
         <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both mt-3 max-w-md text-[15px] text-(--claude-muted) delay-75 duration-300">
           Tra cứu khách hàng, tạo ticket, xem báo cáo hoặc hỏi về CRM
         </p>
@@ -337,13 +334,11 @@ const AssistantMessage: FC = () => {
       data-role="assistant"
       className="group fade-in slide-in-from-bottom-1 animate-in relative duration-200"
     >
-      <div className="flex gap-3 md:gap-4">
-        <AssistantAvatar />
-        <div className="min-w-0 flex-1">
-          <div
-            data-slot="aui_assistant-message-content"
-            className="text-(--claude-text) wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
-          >
+      <div className="min-w-0">
+        <div
+          data-slot="aui_assistant-message-content"
+          className="text-(--claude-text) wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
+        >
             <MessagePrimitive.GroupedParts
               groupBy={groupPartByType({
                 reasoning: ["group-chainOfThought", "group-reasoning"],
@@ -379,36 +374,27 @@ const AssistantMessage: FC = () => {
                       </ToolGroupRoot>
                     );
                   case "text":
-                    return <MarkdownText />;
+                    return <AssistantText />;
                   case "reasoning":
                     return <Reasoning {...part} />;
                   case "tool-call":
                     return part.toolUI ?? <ToolFallback {...part} />;
                   case "indicator":
-                    return (
-                      <span
-                        data-slot="aui_assistant-message-indicator"
-                        className="animate-pulse font-serif text-(--claude-muted)"
-                        aria-label="Assistant is working"
-                      >
-                        ●
-                      </span>
-                    );
+                    return <AssistantPendingIndicator />;
                   default:
                     return null;
                 }
               }}
             </MessagePrimitive.GroupedParts>
             <MessageError />
-          </div>
+        </div>
 
-          <div
-            data-slot="aui_assistant-message-footer"
-            className={cn("flex items-center", ACTION_BAR_HEIGHT)}
-          >
-            <BranchPicker />
-            <AssistantActionBar />
-          </div>
+        <div
+          data-slot="aui_assistant-message-footer"
+          className={cn("flex items-center", ACTION_BAR_HEIGHT)}
+        >
+          <BranchPicker />
+          <AssistantActionBar />
         </div>
       </div>
     </MessagePrimitive.Root>

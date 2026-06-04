@@ -1,5 +1,7 @@
 "use client";
 
+import { PERSIST_CHAT_TO_LOCAL_STORAGE } from "@/lib/chat/persist-config";
+
 const STORAGE_PREFIX = "@crm-chatbot:";
 const SEED_FLAG_KEY = `${STORAGE_PREFIX}mock-seeded`;
 
@@ -60,6 +62,7 @@ Bạn muốn tôi tạo ticket hay gửi email follow-up?`,
 ];
 
 export function seedMockDemoIfNeeded() {
+  if (!PERSIST_CHAT_TO_LOCAL_STORAGE) return;
   if (process.env.NEXT_PUBLIC_MOCK_CHAT !== "true") return;
   if (typeof window === "undefined") return;
 

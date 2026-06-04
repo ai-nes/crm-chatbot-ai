@@ -1,6 +1,5 @@
 "use client";
 
-import { AppLogo } from "@/components/chatbot/app-logo";
 import { ThreadList } from "@/components/assistant-ui/thread-list";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -52,10 +51,9 @@ const SidebarPanel: FC<{
         aria-hidden={collapsed}
       >
         <div
-          className="flex min-w-0 flex-1 items-center gap-2.5"
+          className="flex min-w-0 flex-1 items-center"
           style={{ paddingLeft: SIDEBAR_PLUS_INDENT }}
         >
-          <AppLogo priority className="h-7 max-w-32.5 object-contain object-left" />
           <span className="truncate text-sm font-semibold tracking-tight text-(--claude-text)">
             CRM Chatbot
           </span>

@@ -87,6 +87,7 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
   return runtime;
 };
 
+/** Thread list + messages: localStorage khi `PERSIST_CHAT_TO_LOCAL_STORAGE`, không thì chỉ trong phiên. */
 export function usePersistentChatRuntime<
   UI_MESSAGE extends UIMessage = UIMessage,
 >(options: UseChatRuntimeOptions<UI_MESSAGE> = {}): AssistantRuntime {

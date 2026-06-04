@@ -1,32 +1,43 @@
-import { openai } from "@ai-sdk/openai";
-import { frontendTools } from "@assistant-ui/react-ai-sdk";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import {
-  createMockChatStreamResponse,
-  isMockChatEnabled,
-} from "@/lib/chat/mock-chat-stream";
-import { extractUserText, getMockReply } from "@/lib/chat/mock-responses";
+import { type UIMessage } from "ai";
 
 export const maxDuration = 30;
 
-const CRM_SYSTEM_PROMPT =
-  "Bạn là trợ lý AI của hệ thống CRM. Hỗ trợ nhân viên tra cứu khách hàng, quản lý ticket, báo cáo doanh số và hướng dẫn sử dụng CRM. Trả lời bằng tiếng Việt, ngắn gọn và chuyên nghiệp.";
-
 export async function POST(req: Request) {
-  const { messages, system, tools } = await req.json();
-  const uiMessages = messages as UIMessage[];
+  const body = await req.json();
+  const messages = body.messages as UIMessage[];
 
-  if (isMockChatEnabled()) {
-    const userText = extractUserText(uiMessages);
-    const reply = getMockReply(userText);
-    return createMockChatStreamResponse(reply, uiMessages);
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return Response.json(
+      { error: "messages phải là mảng không rỗng" },
+      { status: 400 },
+    );
   }
 
-  const result = streamText({
-    model: openai("gpt-4o-mini"),
-    system: system ?? CRM_SYSTEM_PROMPT,
-    messages: await convertToModelMessages(messages),
-    tools: frontendTools(tools),
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  const apiKey = process.env.CHAT_API_KEY ?? "CHANGE_ME_to_a_long_random_secret";
+
+  const upstream = await fetch(`${apiUrl}/api/v1/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({ messages }),
   });
-  return result.toUIMessageStreamResponse();
+
+  if (!upstream.ok) {
+    const text = await upstream.text().catch(() => "");
+    return Response.json(
+      { error: text || upstream.statusText },
+      { status: upstream.status },
+    );
+  }
+
+  return new Response(upstream.body, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
