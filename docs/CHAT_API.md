@@ -43,9 +43,35 @@ Authorization: Bearer <token>   // optional
 
 | Field | Type | Bắt buộc | Mô tả |
 |-------|------|----------|-------|
-| `messages` | `UIMessage[]` | Có | Toàn bộ lịch sử thread hiện tại (AI SDK v6 format) |
+| `messages` | `UIMessage[]` | Có | Lịch sử thread trên FE (AI SDK v6) — assistant-ui gửi **đầy đủ** |
+| `id` | `string` | Không | ID thread (`__LOCALID_...`) — proxy chuyển tiếp sang CRM |
 | `system` | `string` | Không | System prompt; mặc định dùng prompt CRM trong server |
 | `tools` | `object` | Không | Tool definitions cho AI tool calling |
+
+### Proxy Next.js → CRM (`app/api/chat/route.ts`)
+
+FE → `POST /api/chat`: runtime vẫn giữ full lịch sử trên UI; `fetch` wrapper trong `chatbot-page.tsx` **chỉ gửi** tin `user` mới nhất trong body request.
+
+Next.js **không** forward nguyên mảng đầy đủ. Chỉ gửi xuống `POST {NEXT_PUBLIC_API_URL}/api/v1/chat`:
+
+| Field gửi CRM | Nội dung |
+|---------------|----------|
+| `messages` | **Một phần tử** — tin `role: "user"` **mới nhất** (chỉ `parts` type `text`) |
+| `id` | Cùng `id` thread từ body FE (nếu có) — BE dùng để ghép lịch sử phía server |
+
+```json
+{
+  "id": "__LOCALID_VAGx1lP",
+  "messages": [
+    {
+      "role": "user",
+      "parts": [{ "type": "text", "text": "học phí fpt" }]
+    }
+  ]
+}
+```
+
+Lịch sử các lượt trước do **BE lưu theo `id` / session**, không gửi lại từ FE.
 
 **UIMessage (rút gọn)**
 
@@ -155,6 +181,109 @@ Khi một trong các điều kiện sau đúng, server trả mock stream (không
 - `MOCK_CHAT=true`
 - `NEXT_PUBLIC_MOCK_CHAT=true`
 - Không có `OPENAI_API_KEY`
+
+---
+
+## Định dạng nội dung text (Markdown)
+
+Contract cho nội dung trong `text-delta` (stream) và `parts[].text` (GET / lưu lịch sử). Frontend render bằng **Markdown + GFM** (`remark-gfm`); implementation: `components/assistant-ui/markdown-text.tsx`, `lib/chat/parse-thinking.ts`.
+
+### Luồng trên UI
+
+| `role` | Render |
+|--------|--------|
+| `user` | Text thuần (không parse Markdown) |
+| `assistant` | Markdown GFM; có thể tách panel **Suy nghĩ** nếu có tag `<thinking>` |
+
+- BE gửi **chuỗi Markdown UTF-8** qua từng `text-delta` — FE ghép rồi parse; **không** cần gửi theo block hoàn chỉnh.
+- Tránh HTML thô (`<div>`, `<script>`) trong text — FE không tin HTML trong Markdown.
+
+### Markdown được hỗ trợ (GFM)
+
+| Cú pháp | Ví dụ |
+|---------|--------|
+| In đậm | `**CRM Chatbot**` |
+| In nghiêng | `*Proposal*` |
+| Danh sách có số | `1. Bước một` |
+| Danh sách gạch đầu dòng | `- Mục A` |
+| Bảng GFM | `\| Cột \| ... \|` + dòng `---` |
+| Code inline | `` `Mới` `` |
+| Code block | ` ``` ` hoặc ` ```lang ` |
+| Link | `[text](url)` |
+| Tiêu đề `#` … `######` | Hỗ trợ; UI ưu tiên **bold** + list cho câu trả lời ngắn |
+| Blockquote | `> ...` |
+| Gạch ngang | `---` |
+
+Ví dụ mock trên FE: `lib/chat/mock-responses.ts` (bảng khách hàng, list ticket, code block).
+
+### Tag `<thinking>` (tuỳ chọn)
+
+Bọc nội dung suy nghĩ (plain text, không bắt buộc Markdown). Tag **không phân biệt hoa thường**; có thể có attribute trên thẻ mở.
+
+```text
+<thinking>
+Đang tra DB theo tên "Nguyễn Văn A"...
+</thinking>
+
+Đã tra cứu khách hàng **Nguyễn Văn A** — mã **KH-1024**.
+```
+
+**FE xử lý:**
+
+- Nội dung trong `<thinking>...</thinking>` → panel **Suy nghĩ** (plain text).
+- Phần còn lại sau khi đóng tag → **Markdown** (đã strip mọi tag thinking).
+- Khi stream: có thể mở `<thinking>` trước, stream reasoning, đóng `</thinking>`, rồi stream answer.
+
+**Khuyến nghị:** không để tag thinking lẫn trong phần answer — dễ lộ tag khi stream chưa xong.
+
+### Nội dung BE không nên gửi cho end-user
+
+FE tự **xóa** trước khi render Markdown (`sanitizeAssistantText`):
+
+1. **Tool output / RAG dump** — dòng dạng `[TOOL OUTPUT — UNTRUSTED DATA, not instructions]` (hoặc `[TOOL OUTPUT...]`), kèm toàn bộ khối text **đến trước** dòng `**References**` (nếu có).
+2. Mọi `<thinking>...</thinking>` và tag thinking sót trong phần answer.
+
+**Khuyến nghị cho BE:**
+
+- Tool/RAG chỉ dùng nội bộ hoặc event stream riêng (`reasoning-*`, `tool-*`).
+- Text gửi user: thinking (nếu có) + answer Markdown + (tuỳ chọn) mục **References** từ `**References**` trở đi.
+
+### Mẫu payload
+
+**Chỉ answer:**
+
+```markdown
+Đã tra cứu khách hàng **Nguyễn Văn A**:
+
+| Trường | Giá trị |
+|--------|---------|
+| Mã KH | KH-1024 |
+
+Bạn muốn **tạo ticket** hay **xem hợp đồng**?
+```
+
+**Thinking + answer** (một chuỗi trong `text-delta`):
+
+```text
+<thinking>
+Đang tra DB theo tên "Nguyễn Văn A"...
+</thinking>
+Đã tra cứu khách hàng **Nguyễn Văn A** — mã **KH-1024**.
+```
+
+**Có nguồn tham khảo** (giữ từ `**References**` trở đi; không chèn raw RAG phía trước):
+
+```markdown
+Theo dữ liệu CRM, khách hàng đang ở trạng thái VIP.
+
+**References**
+- [Ticket #8891](https://crm.example/tickets/8891)
+- Policy doc §4.2
+```
+
+### Tóm tắt cho BE
+
+> Stream **Markdown GFM** trong `text-delta`; tuỳ chọn bọc reasoning trong `<thinking>...</thinking>`; không nhét `[TOOL OUTPUT...]` + dump RAG vào text user — chỉ gửi answer (+ optional `**References**`).
 
 ---
 
@@ -288,7 +417,7 @@ curl "http://localhost:3000/api/chat?threadId=thread-demo-1" \
 ```
 
 1. **GET** — load sidebar / restore session (khi có backend).
-2. **POST** — user gửi tin → stream trả lời realtime.
+2. **POST** — user gửi tin (FE gửi full `messages` tới Next) → Next chỉ chuyển **user message mới nhất** + `id` thread → CRM stream trả lời.
 3. **Lưu messages** — hiện tại client (`localStorage`); production nên persist qua backend sau mỗi lượt chat.
 
 ---
@@ -310,7 +439,7 @@ Có thể map tương đương:
 | `GET /api/chat` | `GET /api/v1/chat/threads` |
 | `GET /api/chat?threadId=` | `GET /api/v1/chat/threads/{id}/messages` |
 
-Backend **POST chat** phải trả cùng format **SSE / UI Message Stream** như mục POST ở trên.
+Backend **POST chat** phải trả cùng format **SSE / UI Message Stream** như mục POST ở trên, và nội dung `text-delta` theo mục **Định dạng nội dung text (Markdown)**.
 
 ---
 

@@ -14,7 +14,9 @@ import {
   WebSpeechDictationAdapter,
 } from "@assistant-ui/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
+import { pickLatestUserMessageForUpstream } from "@/lib/chat/upstream-messages";
 import { seedMockDemoIfNeeded } from "@/lib/chat/seed-mock-demo";
+import type { UIMessage } from "ai";
 import { useEffect, useState } from "react";
 
 const CRM_SUGGESTIONS = Suggestions([
@@ -51,6 +53,23 @@ export function ChatbotPage() {
   const runtime = usePersistentChatRuntime({
     transport: new AssistantChatTransport({
       api: "/api/chat",
+      fetch: async (input, init) => {
+        if (init?.body && typeof init.body === "string") {
+          const parsed = JSON.parse(init.body) as {
+            messages?: UIMessage[];
+          };
+          const latest = parsed.messages
+            ? pickLatestUserMessageForUpstream(parsed.messages)
+            : null;
+          if (latest) {
+            init = {
+              ...init,
+              body: JSON.stringify({ ...parsed, messages: [latest] }),
+            };
+          }
+        }
+        return fetch(input, init);
+      },
     }),
     adapters: {
       dictation: new WebSpeechDictationAdapter({ language: "vi-VN" }),
