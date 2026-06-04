@@ -90,6 +90,14 @@
   --claude-accent: #c96442;
   --claude-accent-hover: #b85a3c;
   --thread-max-width: 48rem;
+  background-color: var(--claude-bg);
+}
+
+html:has(.claude-chat),
+html:has(.claude-chat) body {
+  height: 100%;
+  overflow: hidden;
+  background-color: #f5f4ef;
 }
 
 .claude-chat .aui-md {

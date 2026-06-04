@@ -82,7 +82,7 @@ export function ChatbotPage() {
 
   return (
     <AssistantRuntimeProvider aui={aui} runtime={runtime}>
-      <div className="claude-chat">
+      <div className="claude-chat h-dvh overflow-hidden">
         <ChatShell
           sidebarExpanded={sidebarExpanded}
           sidebar={
@@ -95,7 +95,7 @@ export function ChatbotPage() {
             />
           }
         >
-          <header className="flex items-center gap-2 border-b border-(--claude-border) bg-(--claude-bg)/80 px-4 py-3 backdrop-blur-sm md:hidden">
+          <header className="flex shrink-0 items-center gap-2 border-b border-(--claude-border) bg-(--claude-bg)/80 px-4 py-3 backdrop-blur-sm md:hidden">
             <ChatSidebarToggle
               onClick={() => setMobileSidebarOpen(true)}
             />
@@ -105,7 +105,7 @@ export function ChatbotPage() {
               </span>
             </div>
           </header>
-          <main className="min-h-0 flex-1">
+          <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Thread />
           </main>
         </ChatShell>

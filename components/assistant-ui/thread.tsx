@@ -60,7 +60,7 @@ import type { FC } from "react";
 export const Thread: FC = () => {
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root @container flex h-full flex-col bg-(--claude-bg)"
+      className="aui-root aui-thread-root @container flex h-full min-h-0 flex-col bg-(--claude-bg)"
       style={{
         ["--thread-max-width" as string]: "56rem",
         ["--composer-radius" as string]: "28px",
@@ -68,25 +68,25 @@ export const Thread: FC = () => {
       }}
     >
       <ThreadPrimitive.Viewport
-        turnAnchor="top"
+        turnAnchor="bottom"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
+        className="relative flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto scroll-smooth"
       >
-        <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-6 md:px-6">
+        <div className="mx-auto flex w-full max-w-(--thread-max-width) min-h-0 flex-1 flex-col px-4 pt-3 md:px-6 md:pt-6">
           <AuiIf condition={(s) => s.thread.isEmpty}>
             <ThreadWelcome />
           </AuiIf>
 
           <div
             data-slot="aui_message-group"
-            className="mb-6 flex flex-col gap-y-10 empty:hidden"
+            className="mb-4 flex flex-col gap-y-8 empty:hidden md:mb-6 md:gap-y-10"
           >
             <ThreadPrimitive.Messages>
               {() => <ThreadMessage />}
             </ThreadPrimitive.Messages>
           </div>
 
-          <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-3 overflow-visible bg-linear-to-t from-(--claude-bg) from-60% to-transparent pb-4 pt-6 md:pb-8">
+          <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer mt-auto shrink-0 flex flex-col gap-2 overflow-visible bg-(--claude-bg) pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:gap-3 md:pb-8 md:pt-6">
             <ThreadScrollToBottom />
             <Composer />
             <p className="text-center text-xs text-(--claude-muted)">
@@ -131,8 +131,8 @@ const ThreadWelcome: FC = () => {
     const orbState: VoiceOrbState =
       dictation.status.type === "starting" ? "connecting" : "listening";
     return (
-      <div className="aui-thread-welcome-root my-auto flex min-h-[50vh] grow flex-col items-center justify-center gap-6">
-        <VoiceOrb state={orbState} variant="blue" className="size-56" />
+      <div className="aui-thread-welcome-root flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-6">
+        <VoiceOrb state={orbState} variant="blue" className="size-40 md:size-56" />
         <p className="fade-in animate-in text-lg text-(--claude-muted) duration-300">
           {dictation.status.type === "starting" ? "Đang khởi động..." : "Đang lắng nghe..."}
         </p>
@@ -141,7 +141,7 @@ const ThreadWelcome: FC = () => {
   }
 
   return (
-    <div className="aui-thread-welcome-root my-auto flex min-h-[50vh] grow flex-col justify-center">
+    <div className="aui-thread-welcome-root flex min-h-0 flex-1 flex-col justify-between gap-4 py-2 md:justify-center md:gap-6 md:py-0">
       <div className="aui-thread-welcome-center flex w-full flex-col items-center justify-center text-center">
         <WelcomeRotatingHeadline />
         <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both mt-3 max-w-md text-[15px] text-(--claude-muted) delay-75 duration-300">
@@ -155,7 +155,7 @@ const ThreadWelcome: FC = () => {
 
 const ThreadSuggestions: FC = () => {
   return (
-    <div className="aui-thread-welcome-suggestions mx-auto mt-8 grid w-full max-w-2xl gap-2 @md:grid-cols-2">
+    <div className="aui-thread-welcome-suggestions mx-auto mt-4 grid w-full max-w-2xl gap-2 @md:mt-8 @md:grid-cols-2">
       <ThreadPrimitive.Suggestions>
         {() => <ThreadSuggestionItem />}
       </ThreadPrimitive.Suggestions>
