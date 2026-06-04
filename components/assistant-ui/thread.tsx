@@ -96,15 +96,19 @@ export const Thread: FC = () => {
     >
       <ThreadPrimitive.Viewport
         turnAnchor="top"
+        scrollToBottomOnInitialize={false}
+        scrollToBottomOnThreadSwitch={false}
         data-slot="aui_thread-viewport"
         className="relative min-h-0 overflow-x-hidden overflow-y-auto scroll-smooth no-scrollbar"
       >
-        <ThreadViewportContent />
+        <div className="flex min-h-full flex-col">
+          <ThreadViewportContent />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 mx-auto flex w-full max-w-(--thread-max-width) justify-center px-4 md:px-6">
-          <div className="pointer-events-auto">
-            <ThreadScrollToBottom />
-          </div>
+          <ThreadPrimitive.ViewportFooter className="aui-thread-scroll-footer pointer-events-none sticky bottom-0 z-20 mt-auto flex shrink-0 justify-center border-0 bg-transparent px-4 pb-2 pt-0 shadow-none md:px-6">
+            <div className="pointer-events-auto">
+              <ThreadScrollToBottom />
+            </div>
+          </ThreadPrimitive.ViewportFooter>
         </div>
       </ThreadPrimitive.Viewport>
 
@@ -136,29 +140,21 @@ const ThreadViewportContent: FC = () => {
   const isEmpty = useAuiState((s) => s.thread.isEmpty);
 
   return (
-    <div
-      className={cn(
-        "mx-auto flex w-full min-w-0 max-w-(--thread-max-width) flex-col overflow-x-hidden px-4 md:px-6",
-        isEmpty ? "min-h-full" : "min-h-0",
-      )}
-    >
-      {isEmpty && (
-        <div className="aui-thread-welcome-shell flex min-h-0 flex-1 flex-col items-center justify-center py-6 md:py-12">
+    <div className="mx-auto flex w-full min-w-0 max-w-(--thread-max-width) flex-1 flex-col overflow-x-hidden px-4 md:px-6">
+      {isEmpty ? (
+        <div className="aui-thread-welcome-shell flex flex-1 flex-col items-center justify-center py-6 md:py-12">
           <ThreadWelcome />
         </div>
+      ) : (
+        <div
+          data-slot="aui_message-group"
+          className="flex flex-col gap-y-8 pt-4 pb-6 md:gap-y-10 md:pt-6 md:pb-8"
+        >
+          <ThreadPrimitive.Messages>
+            {() => <ThreadMessage />}
+          </ThreadPrimitive.Messages>
+        </div>
       )}
-
-      <div
-        data-slot="aui_message-group"
-        className={cn(
-          "flex flex-col gap-y-8 pb-6 md:gap-y-10 md:pb-8",
-          isEmpty ? "hidden" : "pt-4 md:pt-6",
-        )}
-      >
-        <ThreadPrimitive.Messages>
-          {() => <ThreadMessage />}
-        </ThreadPrimitive.Messages>
-      </div>
     </div>
   );
 };
