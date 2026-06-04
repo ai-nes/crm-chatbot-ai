@@ -443,6 +443,19 @@ Backend **POST chat** phải trả cùng format **SSE / UI Message Stream** như
 
 ---
 
+## Deploy Vercel (stream dài)
+
+`app/api/chat/route.ts` đặt `export const maxDuration = 140` (giây) để proxy SSE không bị cắt khi BE chờ RAG sau `<thinking>` (chỉ thấy `: ping` rồi im).
+
+| Gói Vercel | Ghi chú |
+|------------|---------|
+| Hobby | Thường tối đa **60s** — `140` có thể **không** áp dụng, function vẫn timeout sớm |
+| Pro / Enterprise | Có thể tăng (tối đa theo plan, thường tới **300s** trên Serverless Functions) |
+
+Sau khi đổi: **redeploy** và kiểm tra Vercel Logs (không còn `FUNCTION_TIMEOUT` ~30s). Nếu vẫn cắt ở ~60s → nâng gói hoặc gọi thẳng BE từ client (CORS).
+
+---
+
 ## Env liên quan
 
 ```env
