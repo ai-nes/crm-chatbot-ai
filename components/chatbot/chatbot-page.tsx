@@ -11,6 +11,7 @@ import {
   AssistantRuntimeProvider,
   Suggestions,
   useAui,
+  WebSpeechDictationAdapter,
 } from "@assistant-ui/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { seedMockDemoIfNeeded } from "@/lib/chat/seed-mock-demo";
@@ -51,6 +52,9 @@ export function ChatbotPage() {
     transport: new AssistantChatTransport({
       api: "/api/chat",
     }),
+    adapters: {
+      dictation: new WebSpeechDictationAdapter({ language: "vi-VN" }),
+    },
   });
 
   const aui = useAui({
@@ -66,18 +70,15 @@ export function ChatbotPage() {
             <ChatSidebar
               open={mobileSidebarOpen}
               onOpenChange={setMobileSidebarOpen}
+              collapsed={!sidebarExpanded}
+              onExpand={() => setSidebarExpanded(true)}
               onCollapse={() => setSidebarExpanded(false)}
             />
           }
         >
-          <header
-            className={`flex items-center gap-2 border-b border-(--claude-border) bg-(--claude-bg)/80 px-4 py-3 backdrop-blur-sm ${sidebarExpanded ? "md:hidden" : ""}`}
-          >
+          <header className="flex items-center gap-2 border-b border-(--claude-border) bg-(--claude-bg)/80 px-4 py-3 backdrop-blur-sm md:hidden">
             <ChatSidebarToggle
-              onClick={() => {
-                setSidebarExpanded(true);
-                setMobileSidebarOpen(true);
-              }}
+              onClick={() => setMobileSidebarOpen(true)}
             />
             <div className="flex min-w-0 items-center gap-2 md:mx-auto">
               <span className="truncate text-[15px] font-medium text-(--claude-text)">

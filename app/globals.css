@@ -79,12 +79,14 @@
 
 /* Claude-inspired chat theme */
 .claude-chat {
-  --claude-bg: #faf9f5;
-  --claude-surface: #ffffff;
-  --claude-user-bubble: #e8e4de;
-  --claude-border: #e5e2dc;
+  --claude-bg: #f5f4ef;
+  --claude-surface: #fefdf9;
+  --claude-card: #eeecea;
+  --claude-user-bubble: #e3dfd8;
+  --claude-border: #dedad4;
+  --claude-border-subtle: #e8e5df;
   --claude-text: #1a1915;
-  --claude-muted: #6b6a68;
+  --claude-muted: #706f6d;
   --claude-accent: #c96442;
   --claude-accent-hover: #b85a3c;
   --thread-max-width: 48rem;

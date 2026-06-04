@@ -8,41 +8,101 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { PanelLeftCloseIcon, PanelLeftIcon, XIcon } from "lucide-react";
 import type { FC, ReactNode } from "react";
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_PLUS_INDENT,
+  SIDEBAR_TRANSITION_MS,
+  SIDEBAR_WIDTH,
+  sidebarFadeClass,
+  sidebarFadeMs,
+} from "@/components/chatbot/sidebar-motion";
+
+export {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_TRANSITION_MS,
+  SIDEBAR_WIDTH,
+} from "@/components/chatbot/sidebar-motion";
 
 type ChatSidebarProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onCollapse?: () => void;
+  collapsed?: boolean;
+  onExpand?: () => void;
 };
 
-const SidebarPanel: FC<{ onClose: () => void; closeLabel: string }> = ({
-  onClose,
-  closeLabel,
-}) => (
-  <aside className="flex h-full w-full flex-col bg-[#f5f4f0]">
-    <div className="flex items-center justify-between gap-2 px-3 py-3">
-      <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        <AppLogo priority className="h-7 max-w-32.5" />
-        <span className="truncate text-sm font-semibold tracking-tight text-(--claude-text)">
-          CRM Chatbot
-        </span>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-8 shrink-0 text-(--claude-muted) hover:bg-[#eceae4] hover:text-(--claude-text)"
-        onClick={onClose}
-        aria-label={closeLabel}
-      >
-        {closeLabel === "Đóng sidebar" ? (
-          <XIcon className="size-4" />
-        ) : (
-          <PanelLeftCloseIcon className="size-4" />
+const SidebarPanel: FC<{
+  onClose: () => void;
+  closeLabel: string;
+  collapsed?: boolean;
+  onExpand?: () => void;
+}> = ({ onClose, closeLabel, collapsed = false, onExpand }) => (
+  <aside
+    data-collapsed={collapsed || undefined}
+    className="flex h-full w-full flex-col bg-[#f5f4f0]"
+  >
+    <div className="relative w-full shrink-0 py-3">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 pr-3",
+          sidebarFadeClass,
+          collapsed ? "opacity-0" : "opacity-100",
         )}
-      </Button>
+        style={sidebarFadeMs}
+        aria-hidden={collapsed}
+      >
+        <div
+          className="flex min-w-0 flex-1 items-center gap-2.5"
+          style={{ paddingLeft: SIDEBAR_PLUS_INDENT }}
+        >
+          <AppLogo priority className="h-7 max-w-32.5 object-contain object-left" />
+          <span className="truncate text-sm font-semibold tracking-tight text-(--claude-text)">
+            CRM Chatbot
+          </span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0 text-(--claude-muted) hover:bg-[#eceae4] hover:text-(--claude-text)"
+          onClick={onClose}
+          aria-label={closeLabel}
+          tabIndex={collapsed ? -1 : undefined}
+        >
+          {closeLabel === "Đóng sidebar" ? (
+            <XIcon className="size-4" />
+          ) : (
+            <PanelLeftCloseIcon className="size-4" />
+          )}
+        </Button>
+      </div>
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center",
+          sidebarFadeClass,
+          collapsed ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        style={sidebarFadeMs}
+        aria-hidden={!collapsed}
+      >
+        <div
+          className="flex items-center justify-center"
+          style={{ width: SIDEBAR_COLLAPSED_WIDTH }}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9 shrink-0 text-(--claude-muted) hover:bg-[#eceae4] hover:text-(--claude-text)"
+            onClick={onExpand}
+            aria-label="Mở rộng sidebar"
+            tabIndex={collapsed ? undefined : -1}
+          >
+            <PanelLeftIcon className="size-4" />
+          </Button>
+        </div>
+      </div>
     </div>
-    <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
-      <ThreadList />
+    <div className="min-h-0 w-full flex-1 overflow-y-auto pb-4">
+      <ThreadList collapsed={collapsed} />
     </div>
   </aside>
 );
@@ -51,6 +111,8 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   open,
   onOpenChange,
   onCollapse,
+  collapsed,
+  onExpand,
 }) => {
   const isMobile = useIsMobile();
 
@@ -73,7 +135,12 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   }
 
   return (
-    <SidebarPanel onClose={() => onCollapse?.()} closeLabel="Thu gọn sidebar" />
+    <SidebarPanel
+      collapsed={collapsed}
+      onExpand={onExpand}
+      onClose={() => onCollapse?.()}
+      closeLabel="Thu gọn sidebar"
+    />
   );
 };
 
@@ -95,14 +162,15 @@ export const ChatSidebarToggle: FC<{
   </Button>
 );
 
-const SIDEBAR_WIDTH = 260;
-
 export const ChatShell: FC<{
   sidebar: ReactNode;
   sidebarExpanded?: boolean;
   children: ReactNode;
 }> = ({ sidebar, sidebarExpanded = true, children }) => {
   const isMobile = useIsMobile();
+  const sidebarWidth = sidebarExpanded
+    ? SIDEBAR_WIDTH
+    : SIDEBAR_COLLAPSED_WIDTH;
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[var(--claude-bg)]">
@@ -110,25 +178,13 @@ export const ChatShell: FC<{
         sidebar
       ) : (
         <div
-          className={cn(
-            "shrink-0 overflow-hidden border-[var(--claude-border)] transition-[width,border-color] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-            sidebarExpanded
-              ? "w-[260px] border-r"
-              : "pointer-events-none w-0 border-r-0",
-          )}
-          aria-hidden={!sidebarExpanded}
+          className="shrink-0 overflow-hidden border-r border-[var(--claude-border)] transition-[width] ease-in-out"
+          style={{
+            width: sidebarWidth,
+            transitionDuration: `${SIDEBAR_TRANSITION_MS}ms`,
+          }}
         >
-          <div
-            className={cn(
-              "h-full transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-              sidebarExpanded
-                ? "translate-x-0 opacity-100"
-                : "-translate-x-3 opacity-0",
-            )}
-            style={{ width: SIDEBAR_WIDTH }}
-          >
-            {sidebar}
-          </div>
+          <div className="h-full w-full">{sidebar}</div>
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
