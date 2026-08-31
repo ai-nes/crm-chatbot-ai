@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ChatShell,
-  ChatSidebar,
-  ChatSidebarToggle,
-} from "@/components/chatbot/chat-sidebar";
+import { ChatShell, ChatSidebar, ChatSidebarToggle } from "@/components/chatbot/chat-sidebar";
 import { Thread } from "@/components/assistant-ui/thread";
 import { usePersistentChatRuntime } from "@/hooks/usePersistentChatRuntime";
 import {
@@ -16,35 +12,73 @@ import {
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { pickLatestUserMessageForUpstream } from "@/lib/chat/upstream-messages";
 import { seedMockDemoIfNeeded } from "@/lib/chat/seed-mock-demo";
+import { EmbedAuthBridge } from "@/components/embed/embed-auth-bridge";
+import { cn } from "@/lib/utils";
+import { useAppSelector } from "@/lib/redux/hooks";
+import { selectAuthToken } from "@/lib/redux/slices/authSlice";
+import { Maximize2Icon } from "lucide-react";
 import type { UIMessage } from "ai";
 import { useEffect, useState } from "react";
 
 const CRM_SUGGESTIONS = Suggestions([
   {
-    title: "Tra cứu khách hàng",
-    label: "Thông tin & lịch sử giao dịch",
-    prompt: "Làm sao để tra cứu thông tin khách hàng trong CRM?",
+    title: "Tổng quan tuyển sinh",
+    label: "Hồ sơ, tương tác và chuyển đổi",
+    prompt: "Tóm tắt tình hình tuyển sinh hiện tại, các chỉ số nổi bật và điểm cần ưu tiên.",
   },
   {
-    title: "Tạo ticket",
-    label: "Hỗ trợ khách hàng",
-    prompt: "Hướng dẫn tạo ticket hỗ trợ khách hàng",
+    title: "Tra cứu hồ sơ học sinh",
+    label: "Thông tin và lịch sử chăm sóc",
+    prompt: "Tra cứu hồ sơ học sinh theo tên, mã hồ sơ hoặc số điện thoại.",
   },
   {
-    title: "Báo cáo doanh số",
-    label: "Pipeline & KPI",
-    prompt: "Xem báo cáo doanh số và pipeline hiện tại",
+    title: "Phân tích lead ưu tiên",
+    label: "Nhóm cần liên hệ tiếp theo",
+    prompt: "Những lead nào cần được ưu tiên liên hệ hôm nay và vì sao?",
   },
   {
-    title: "Hướng dẫn CRM",
-    label: "Tính năng chính",
-    prompt: "Hướng dẫn các tính năng chính của hệ thống CRM",
+    title: "Hiệu suất tuyển sinh",
+    label: "Khu vực, trường và phễu",
+    prompt: "Phân tích hiệu suất tuyển sinh theo khu vực, trường THPT và các giai đoạn của phễu.",
   },
 ]);
 
-export function ChatbotPage() {
+type ChatbotPageProps = {
+  embedded?: boolean;
+  popover?: boolean;
+  onExpand?: () => void;
+};
+
+export function ChatbotPage({ embedded = false, popover = false, onExpand }: ChatbotPageProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const authToken = useAppSelector(selectAuthToken);
+
+  const handleExpand = () => {
+    if (onExpand) {
+      onExpand();
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+
+    if (window.parent !== window) {
+      let targetOrigin = "*";
+      if (document.referrer) {
+        try {
+          targetOrigin = new URL(document.referrer).origin;
+        } catch {
+          // Keep the wildcard fallback when the referrer is not a valid URL.
+        }
+      }
+
+      window.parent.postMessage({ type: "crm-chatbot:expand" }, targetOrigin);
+      return;
+    }
+
+    const fullscreenUrl = process.env.NEXT_PUBLIC_EMBED_FULLSCREEN_URL?.trim();
+    if (fullscreenUrl) window.location.assign(fullscreenUrl);
+  };
 
   useEffect(() => {
     seedMockDemoIfNeeded();
@@ -54,21 +88,24 @@ export function ChatbotPage() {
     transport: new AssistantChatTransport({
       api: "/api/chat",
       fetch: async (input, init) => {
+        const headers = new Headers(init?.headers);
+        if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
+
         if (init?.body && typeof init.body === "string") {
           const parsed = JSON.parse(init.body) as {
             messages?: UIMessage[];
           };
-          const latest = parsed.messages
-            ? pickLatestUserMessageForUpstream(parsed.messages)
-            : null;
+          const latest = parsed.messages ? pickLatestUserMessageForUpstream(parsed.messages) : null;
           if (latest) {
             init = {
               ...init,
+              headers,
               body: JSON.stringify({ ...parsed, messages: [latest] }),
             };
           }
         }
-        return fetch(input, init);
+
+        return fetch(input, { ...init, headers });
       },
     }),
     adapters: {
@@ -82,8 +119,10 @@ export function ChatbotPage() {
 
   return (
     <AssistantRuntimeProvider aui={aui} runtime={runtime}>
-      <div className="claude-chat h-dvh overflow-hidden">
+      {embedded ? <EmbedAuthBridge /> : null}
+      <div className={cn("claude-chat overflow-hidden", embedded ? "h-full" : "h-dvh")}>
         <ChatShell
+          embedded={embedded}
           sidebarExpanded={sidebarExpanded}
           sidebar={
             <ChatSidebar
@@ -96,9 +135,18 @@ export function ChatbotPage() {
           }
         >
           <header className="sticky top-0 z-20 flex shrink-0 items-center gap-2 border-b border-(--claude-border) bg-(--claude-bg) px-4 py-3 md:hidden">
-            <ChatSidebarToggle
-              onClick={() => setMobileSidebarOpen(true)}
-            />
+            {popover ? (
+              <button
+                type="button"
+                onClick={handleExpand}
+                aria-label="Mở rộng chatbot"
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-[var(--claude-muted)] transition-colors hover:bg-[#f3f4f6] hover:text-[var(--claude-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--claude-accent)]"
+              >
+                <Maximize2Icon className="size-4" />
+              </button>
+            ) : (
+              <ChatSidebarToggle onClick={() => setMobileSidebarOpen(true)} />
+            )}
             <div className="flex min-w-0 items-center gap-2 md:mx-auto">
               <span className="truncate text-[15px] font-medium text-(--claude-text)">
                 CRM Chatbot

@@ -163,10 +163,10 @@ const authSlice = createSlice({
   reducers: {
     setTokenWithRefresh: (
       state,
-      action: PayloadAction<{ accessToken: string; refreshToken: string }>
+      action: PayloadAction<{ accessToken: string; refreshToken?: string }>
     ) => {
       state.token = action.payload.accessToken;
-      state.refreshToken = action.payload.refreshToken;
+      state.refreshToken = action.payload.refreshToken ?? null;
       apiService.setAuthToken(action.payload.accessToken);
       const user = decodeToken(action.payload.accessToken);
       if (user) {

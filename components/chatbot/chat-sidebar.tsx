@@ -38,14 +38,14 @@ const SidebarPanel: FC<{
 }> = ({ onClose, closeLabel, collapsed = false, onExpand }) => (
   <aside
     data-collapsed={collapsed || undefined}
-    className="flex h-full w-full flex-col bg-[#f5f4f0]"
+    className="flex h-full w-full flex-col bg-[var(--claude-surface)]"
   >
     <div className="relative w-full shrink-0 py-3">
       <div
         className={cn(
           "flex items-center justify-between gap-2 pr-3",
           sidebarFadeClass,
-          collapsed ? "opacity-0" : "opacity-100",
+          collapsed ? "opacity-0" : "opacity-100"
         )}
         style={sidebarFadeMs}
         aria-hidden={collapsed}
@@ -61,7 +61,7 @@ const SidebarPanel: FC<{
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 shrink-0 text-(--claude-muted) hover:bg-[#eceae4] hover:text-(--claude-text)"
+          className="size-8 shrink-0 text-(--claude-muted) hover:bg-[#f3f4f6] hover:text-(--claude-text)"
           onClick={onClose}
           aria-label={closeLabel}
           tabIndex={collapsed ? -1 : undefined}
@@ -77,7 +77,7 @@ const SidebarPanel: FC<{
         className={cn(
           "absolute inset-0 flex items-center",
           sidebarFadeClass,
-          collapsed ? "opacity-100" : "pointer-events-none opacity-0",
+          collapsed ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         style={sidebarFadeMs}
         aria-hidden={!collapsed}
@@ -89,7 +89,7 @@ const SidebarPanel: FC<{
           <Button
             variant="ghost"
             size="icon"
-            className="size-9 shrink-0 text-(--claude-muted) hover:bg-[#eceae4] hover:text-(--claude-text)"
+            className="size-9 shrink-0 text-(--claude-muted) hover:bg-[#f3f4f6] hover:text-(--claude-text)"
             onClick={onExpand}
             aria-label="Mở rộng sidebar"
             tabIndex={collapsed ? undefined : -1}
@@ -119,14 +119,11 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="left"
-          className="w-[280px] gap-0 border-[var(--claude-border)] bg-[#f5f4f0] p-0"
+          className="w-[280px] gap-0 border-[var(--claude-border)] bg-[var(--claude-surface)] p-0"
           showCloseButton={false}
         >
           <SheetTitle className="sr-only">Danh sách hội thoại</SheetTitle>
-          <SidebarPanel
-            onClose={() => onOpenChange?.(false)}
-            closeLabel="Đóng sidebar"
-          />
+          <SidebarPanel onClose={() => onOpenChange?.(false)} closeLabel="Đóng sidebar" />
         </SheetContent>
       </Sheet>
     );
@@ -150,8 +147,8 @@ export const ChatSidebarToggle: FC<{
     variant="ghost"
     size="icon"
     className={cn(
-      "size-8 text-[var(--claude-muted)] hover:bg-[#eceae4] hover:text-[var(--claude-text)]",
-      className,
+      "size-8 text-[var(--claude-muted)] hover:bg-[#f3f4f6] hover:text-[var(--claude-text)]",
+      className
     )}
     onClick={onClick}
     aria-label="Mở sidebar"
@@ -163,15 +160,16 @@ export const ChatSidebarToggle: FC<{
 export const ChatShell: FC<{
   sidebar: ReactNode;
   sidebarExpanded?: boolean;
+  embedded?: boolean;
   children: ReactNode;
-}> = ({ sidebar, sidebarExpanded = true, children }) => {
+}> = ({ sidebar, sidebarExpanded = true, embedded = false, children }) => {
   const isMobile = useIsMobile();
-  const sidebarWidth = sidebarExpanded
-    ? SIDEBAR_WIDTH
-    : SIDEBAR_COLLAPSED_WIDTH;
+  const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[var(--claude-bg)]">
+    <div
+      className={cn("flex overflow-hidden bg-[var(--claude-bg)]", embedded ? "h-full" : "h-dvh")}
+    >
       {isMobile ? (
         sidebar
       ) : (

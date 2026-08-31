@@ -8,63 +8,63 @@
    ──────────────────────────────────────────── */
 @theme {
   /* Brand tokens — dùng trực tiếp: bg-brand-orange, text-brand-orange-dark … */
-  --color-brand-white:        #ffffff;
-  --color-brand-orange-light: #ffedd5;
-  --color-brand-orange:       #f97316;
-  --color-brand-orange-dark:  #c2410c;
+  --color-brand-white: #ffffff;
+  --color-brand-orange-light: #fff3ec;
+  --color-brand-orange: #f37021;
+  --color-brand-orange-dark: #de5713;
 
   /* Semantic tokens → Tailwind utilities (bg-primary, text-primary-foreground …) */
-  --color-background:                  #ffffff;
-  --color-foreground:                  #1c1917;
+  --color-background: #ffffff;
+  --color-foreground: #1c1917;
 
-  --color-primary:                     #f97316;
-  --color-primary-foreground:          #ffffff;
+  --color-primary: #f37021;
+  --color-primary-foreground: #ffffff;
 
-  --color-secondary:                   #ffedd5;
-  --color-secondary-foreground:        #c2410c;
+  --color-secondary: #fff3ec;
+  --color-secondary-foreground: #de5713;
 
-  --color-accent:                      #fff7ed;
-  --color-accent-foreground:           #c2410c;
+  --color-accent: #fff7ed;
+  --color-accent-foreground: #c2410c;
 
-  --color-muted:                       #f5f5f4;
-  --color-muted-foreground:            #78716c;
+  --color-muted: #f5f5f4;
+  --color-muted-foreground: #78716c;
 
-  --color-destructive:                 #ef4444;
-  --color-destructive-foreground:      #ffffff;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
 
-  --color-border:                      #e7e5e4;
-  --color-input:                       #e7e5e4;
-  --color-ring:                        #f97316;
+  --color-border: #e7e5e4;
+  --color-input: #e7e5e4;
+  --color-ring: #f37021;
 
-  --color-card:                        #ffffff;
-  --color-card-foreground:             #1c1917;
+  --color-card: #ffffff;
+  --color-card-foreground: #1c1917;
 
-  --color-popover:                     #ffffff;
-  --color-popover-foreground:          #1c1917;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1c1917;
 
-  --color-sidebar:                     #fff7ed;
-  --color-sidebar-foreground:          #1c1917;
-  --color-sidebar-primary:             #f97316;
-  --color-sidebar-primary-foreground:  #ffffff;
-  --color-sidebar-accent:              #ffedd5;
-  --color-sidebar-accent-foreground:   #c2410c;
-  --color-sidebar-border:              #fed7aa;
-  --color-sidebar-ring:                #f97316;
+  --color-sidebar: #fff7ed;
+  --color-sidebar-foreground: #1c1917;
+  --color-sidebar-primary: #f37021;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #fff3ec;
+  --color-sidebar-accent-foreground: #de5713;
+  --color-sidebar-border: #fed7aa;
+  --color-sidebar-ring: #f37021;
 
-  --color-chart-1: #f97316;
+  --color-chart-1: #f37021;
   --color-chart-2: #fb923c;
   --color-chart-3: #c2410c;
   --color-chart-4: #ffedd5;
   --color-chart-5: #fed7aa;
 
   /* Radius */
-  --radius:    0.625rem;
+  --radius: 0.625rem;
   --radius-lg: 0.625rem;
   --radius-md: 0.425rem;
   --radius-sm: 0.225rem;
 
   /* Fonts */
-  --font-sans:  var(--font-quicksand);
+  --font-sans: var(--font-quicksand);
   --font-serif: var(--font-open-sans);
 }
 
@@ -79,16 +79,16 @@
 
 /* Claude-inspired chat theme */
 .claude-chat {
-  --claude-bg: #f5f4ef;
-  --claude-surface: #fefdf9;
-  --claude-card: #eeecea;
-  --claude-user-bubble: #e3dfd8;
-  --claude-border: #dedad4;
-  --claude-border-subtle: #e8e5df;
-  --claude-text: #1a1915;
-  --claude-muted: #706f6d;
-  --claude-accent: #c96442;
-  --claude-accent-hover: #b85a3c;
+  --claude-bg: #f9fafb;
+  --claude-surface: #ffffff;
+  --claude-card: #f3f4f6;
+  --claude-user-bubble: #fff3ec;
+  --claude-border: #e5e7eb;
+  --claude-border-subtle: #f3f4f6;
+  --claude-text: #1f2937;
+  --claude-muted: #6b7280;
+  --claude-accent: #f37021;
+  --claude-accent-hover: #de5713;
   --thread-max-width: 48rem;
   background-color: var(--claude-bg);
 }
@@ -97,7 +97,7 @@ html:has(.claude-chat),
 html:has(.claude-chat) body {
   height: 100%;
   overflow: hidden;
-  background-color: #f5f4ef;
+  background-color: #f9fafb;
 }
 
 /* Viewport scroll: fill hết vùng trên composer, tránh thanh scroll bị hở */
@@ -156,11 +156,11 @@ html:has(.claude-chat) body {
 }
 
 .claude-chat .aui-md pre {
-  @apply rounded-xl border border-[var(--claude-border)] bg-[#f5f4f0] font-mono text-[13px];
+  @apply rounded-xl border border-[var(--claude-border)] bg-[var(--claude-card)] font-mono text-[13px];
 }
 
 .claude-chat .aui-md code:not(pre code) {
-  @apply rounded-md bg-[#f0eeea] px-1.5 py-0.5 font-mono text-[13px];
+  @apply rounded-md bg-[var(--claude-card)] px-1.5 py-0.5 font-mono text-[13px];
 }
 
 /* Thinking / loading assistant UI */
@@ -303,12 +303,7 @@ html:has(.claude-chat) body {
   inset-inline-start: 0;
   width: 3px;
   border-radius: 0 4px 4px 0;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    var(--claude-muted),
-    transparent
-  );
+  background: linear-gradient(180deg, transparent, var(--claude-muted), transparent);
   opacity: 0.55;
   animation: aui-thinking-brain-float 1.8s ease-in-out infinite;
 }
@@ -343,9 +338,9 @@ html:has(.claude-chat) body {
   background: linear-gradient(
     90deg,
     var(--claude-border) 0%,
-    #f8f7f4 38%,
+    #f3f4f6 38%,
     var(--claude-surface) 50%,
-    #f8f7f4 62%,
+    #f3f4f6 62%,
     var(--claude-border) 100%
   );
   background-size: 200% 100%;

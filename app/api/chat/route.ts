@@ -11,22 +11,17 @@ export async function POST(req: Request) {
   const messages = body.messages;
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    return Response.json(
-      { error: "messages phải là mảng không rỗng" },
-      { status: 400 },
-    );
+    return Response.json({ error: "messages phải là mảng không rỗng" }, { status: 400 });
   }
 
   const latestUser = pickLatestUserMessageForUpstream(messages);
   if (!latestUser) {
-    return Response.json(
-      { error: "Không tìm thấy tin nhắn user trong messages" },
-      { status: 400 },
-    );
+    return Response.json({ error: "Không tìm thấy tin nhắn user trong messages" }, { status: 400 });
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   const apiKey = process.env.CHAT_API_KEY ?? "CHANGE_ME_to_a_long_random_secret";
+  const authorization = req.headers.get("authorization");
 
   const upstreamBody: { messages: UIMessage[]; id?: string } = {
     messages: [latestUser],
@@ -40,16 +35,14 @@ export async function POST(req: Request) {
     headers: {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
+      ...(authorization ? { Authorization: authorization } : {}),
     },
     body: JSON.stringify(upstreamBody),
   });
 
   if (!upstream.ok) {
     const text = await upstream.text().catch(() => "");
-    return Response.json(
-      { error: text || upstream.statusText },
-      { status: upstream.status },
-    );
+    return Response.json({ error: text || upstream.statusText }, { status: upstream.status });
   }
 
   return new Response(upstream.body, {
