@@ -22,7 +22,9 @@ services:
     ports:
       - "127.0.0.1:${HTTP_PORT:-8095}:5173"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5173/api/health"]
+      # 127.0.0.1, not localhost: the standalone server binds IPv4 0.0.0.0
+      # only, while `localhost` resolves to ::1 first inside the container.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5173/api/health"]
       interval: 15s
       timeout: 5s
       retries: 10
