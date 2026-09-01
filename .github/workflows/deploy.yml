@@ -1,0 +1,144 @@
+name: Build and Deploy Fpilot UI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".vscode/**"
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: crm-chatbot
+  PLATFORMS: linux/amd64
+  EC2_HOST: 54.66.53.9
+  EC2_USER: ubuntu
+  DEPLOY_DIR: /opt/crm-chatbot-ai
+  # NEXT_PUBLIC_* values baked into the client bundle at build time.
+  # Server-side only: the /api/chat route proxies to the crm-agents backend
+  # over the shared `ai-crm_backend` docker network (service alias `app`).
+  NEXT_PUBLIC_API_URL: http://app:7999
+  NEXT_PUBLIC_APP_URL: https://fpilot.faip.pro
+  NEXT_PUBLIC_ENV: production
+  NEXT_PUBLIC_COOKIE_DOMAIN: .faip.pro
+  NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS: https://crm.faip.pro,https://faip.pro
+  NEXT_PUBLIC_EMBED_FULLSCREEN_URL: https://fpilot.faip.pro/chatbot
+
+concurrency:
+  group: crm-chatbot-production-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    name: Docker Hub
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          pull: true
+          platforms: ${{ env.PLATFORMS }}
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_APP_URL=${{ env.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_ENV=${{ env.NEXT_PUBLIC_ENV }}
+            NEXT_PUBLIC_COOKIE_DOMAIN=${{ env.NEXT_PUBLIC_COOKIE_DOMAIN }}
+            NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS=${{ env.NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS }}
+            NEXT_PUBLIC_EMBED_FULLSCREEN_URL=${{ env.NEXT_PUBLIC_EMBED_FULLSCREEN_URL }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Verify pushed commit image
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect \
+            "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+  deploy-ec2:
+    name: Deploy to EC2
+    needs: build-and-push
+    if: ${{ needs.build-and-push.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Trust EC2 host
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload production Compose file
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes "$EC2_USER@$EC2_HOST" \
+            "sudo install -d -m 755 '$DEPLOY_DIR/docker'"
+          scp -o StrictHostKeyChecking=yes \
+            docker/docker-compose.prod.yml \
+            "$EC2_USER@$EC2_HOST:/tmp/crm-chatbot-compose.prod.yml"
+          ssh -o StrictHostKeyChecking=yes "$EC2_USER@$EC2_HOST" \
+            "sudo install -o root -g root -m 0644 \
+             /tmp/crm-chatbot-compose.prod.yml \
+             '$DEPLOY_DIR/docker/docker-compose.prod.yml' && \
+             rm -f /tmp/crm-chatbot-compose.prod.yml"
+
+      - name: Pull image and restart stack
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$DOCKER_PASSWORD" | ssh -o StrictHostKeyChecking=yes \
+            "$EC2_USER@$EC2_HOST" \
+            "sudo docker login --username '$DOCKER_USERNAME' --password-stdin && \
+             test -f '$DEPLOY_DIR/docker/.env' && \
+             cd '$DEPLOY_DIR' && \
+             export CHATBOT_IMAGE='$DOCKER_USERNAME/$IMAGE_NAME:$IMAGE_TAG' && \
+             sudo --preserve-env=CHATBOT_IMAGE docker compose --env-file docker/.env -f docker/docker-compose.prod.yml config --quiet && \
+             sudo --preserve-env=CHATBOT_IMAGE docker compose --env-file docker/.env -f docker/docker-compose.prod.yml pull && \
+             sudo --preserve-env=CHATBOT_IMAGE docker compose --env-file docker/.env -f docker/docker-compose.prod.yml up -d --remove-orphans && \
+             for i in \$(seq 1 30); do \
+               status=\$(sudo docker inspect -f '{{.State.Health.Status}}' crm-chatbot-prod-web-1 2>/dev/null || true); \
+               if [ \"\$status\" = healthy ]; then break; fi; \
+               if [ \"\$status\" = unhealthy ]; then sudo docker logs --tail=100 crm-chatbot-prod-web-1; exit 1; fi; \
+               sleep 5; \
+             done; \
+             test \"\$(sudo docker inspect -f '{{.State.Health.Status}}' crm-chatbot-prod-web-1)\" = healthy || { sudo docker logs --tail=100 crm-chatbot-prod-web-1; exit 1; }; \
+             sudo --preserve-env=CHATBOT_IMAGE docker compose --env-file docker/.env -f docker/docker-compose.prod.yml ps"
