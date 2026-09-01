@@ -39,3 +39,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 Để nhúng chatbot vào ứng dụng khác, dùng route `/embed/chatbot` bằng iframe.
 Xem hướng dẫn đầy đủ tại [docs/EMBED.md](docs/EMBED.md).
+
+## Deploy
+
+Production chạy tại `https://fpilot.faip.pro` qua GitHub Actions → Docker Hub →
+EC2 (Cloudflare Tunnel). Xem [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
