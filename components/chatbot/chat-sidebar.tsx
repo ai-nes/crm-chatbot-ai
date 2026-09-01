@@ -3,6 +3,7 @@
 import { ThreadList } from "@/components/assistant-ui/thread-list";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ScrollArea, ScrollAreaViewport, ScrollBar } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { PanelLeftCloseIcon, PanelLeftIcon, XIcon } from "lucide-react";
@@ -99,9 +100,12 @@ const SidebarPanel: FC<{
         </div>
       </div>
     </div>
-    <div className="no-scrollbar min-h-0 w-full flex-1 overflow-y-auto pb-4">
-      <ThreadList collapsed={collapsed} />
-    </div>
+    <ScrollArea className="min-h-0 w-full flex-1">
+      <ScrollAreaViewport className="pb-4">
+        <ThreadList collapsed={collapsed} />
+      </ScrollAreaViewport>
+      <ScrollBar />
+    </ScrollArea>
   </aside>
 );
 
@@ -158,11 +162,12 @@ export const ChatSidebarToggle: FC<{
 );
 
 export const ChatShell: FC<{
-  sidebar: ReactNode;
+  sidebar?: ReactNode;
+  showSidebar?: boolean;
   sidebarExpanded?: boolean;
   embedded?: boolean;
   children: ReactNode;
-}> = ({ sidebar, sidebarExpanded = true, embedded = false, children }) => {
+}> = ({ sidebar, showSidebar = true, sidebarExpanded = true, embedded = false, children }) => {
   const isMobile = useIsMobile();
   const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH;
 
@@ -170,19 +175,21 @@ export const ChatShell: FC<{
     <div
       className={cn("flex overflow-hidden bg-[var(--claude-bg)]", embedded ? "h-full" : "h-dvh")}
     >
-      {isMobile ? (
-        sidebar
-      ) : (
-        <div
-          className="shrink-0 overflow-hidden border-r border-[var(--claude-border)] transition-[width] ease-in-out"
-          style={{
-            width: sidebarWidth,
-            transitionDuration: `${SIDEBAR_TRANSITION_MS}ms`,
-          }}
-        >
-          <div className="h-full w-full">{sidebar}</div>
-        </div>
-      )}
+      {showSidebar ? (
+        isMobile ? (
+          sidebar
+        ) : (
+          <div
+            className="shrink-0 overflow-hidden border-r border-[var(--claude-border)] transition-[width] ease-in-out"
+            style={{
+              width: sidebarWidth,
+              transitionDuration: `${SIDEBAR_TRANSITION_MS}ms`,
+            }}
+          >
+            <div className="h-full w-full">{sidebar}</div>
+          </div>
+        )
+      ) : null}
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
   );

@@ -3,7 +3,15 @@ import {
   ComposerAttachments,
   UserMessageAttachments,
 } from "@/components/assistant-ui/attachment";
-import { AssistantPendingIndicator, AssistantText } from "@/components/assistant-ui/thinking-block";
+import {
+  AssistantText,
+  ThinkingActivityPanel,
+  ThinkingLoading,
+  readAgentActivityPart,
+  readAgentReasoningPart,
+  type AgentActivity,
+  type AgentReasoning,
+} from "@/components/assistant-ui/thinking-block";
 import {
   Reasoning,
   ReasoningContent,
@@ -19,7 +27,7 @@ import {
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotating-headline";
 import { VoiceOrb } from "@/components/assistant-ui/voice";
-import { ApprovalGate } from "@/components/chatbot/approval-gate";
+import { ComposerApprovalPrompt } from "@/components/chatbot/approval-gate";
 import { CitationHints } from "@/components/chatbot/citation-hints";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
@@ -54,7 +62,7 @@ import {
   RefreshCwIcon,
   SquareIcon,
 } from "lucide-react";
-import type { ComponentPropsWithoutRef, FC } from "react";
+import { useMemo, type ComponentPropsWithoutRef, type FC } from "react";
 
 const ComposerTooltipButton: FC<
   ComponentPropsWithoutRef<"button"> & {
@@ -76,7 +84,7 @@ const ComposerTooltipButton: FC<
 export const Thread: FC = () => {
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root @container grid h-full min-h-0 max-w-full flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-(--claude-bg)"
+      className="aui-root aui-thread-root @container grid h-full min-h-0 min-w-0 max-w-full flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-(--claude-bg)"
       style={{
         ["--thread-max-width" as string]: "56rem",
         ["--composer-radius" as string]: "28px",
@@ -88,7 +96,7 @@ export const Thread: FC = () => {
         scrollToBottomOnInitialize={false}
         scrollToBottomOnThreadSwitch={false}
         data-slot="aui_thread-viewport"
-        className="relative min-h-0 overflow-x-hidden overflow-y-auto scroll-smooth no-scrollbar"
+        className="aui-thread-scroll-viewport relative min-h-0 min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
       >
         <div className="flex min-h-full flex-col">
           <ThreadViewportContent />
@@ -208,6 +216,7 @@ const ComposerInlineDictationOrb: FC = () => {
 const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full min-w-0 max-w-full flex-col">
+      <ComposerApprovalPrompt />
       <ComposerPrimitive.AttachmentDropzone
         render={
           <div
@@ -330,27 +339,42 @@ const MessageError: FC = () => {
 const AssistantMessage: FC = () => {
   const ACTION_BAR_PT = "pt-1.5";
   const ACTION_BAR_HEIGHT = `-mb-7.5 min-h-7.5 ${ACTION_BAR_PT}`;
-  const approvalPart = useAuiState((s) =>
-    s.message.parts.find(
+  const isRunning = useAuiState((s) => s.message.status?.type === "running");
+  const hasVisibleText = useAuiState((s) =>
+    s.message.parts.some(
       (part) =>
-        (String(part.type) === "data" &&
-          String((part as { name?: string }).name) === "approval-required") ||
-        String(part.type) === "data-approval-required"
+        String(part.type) === "text" &&
+        String((part as { text?: string }).text ?? "").trim().length > 0
     )
-  ) as unknown as { data?: Record<string, unknown> } | undefined;
+  );
+  const messageParts = useAuiState((s) => s.message.parts);
+  const agentActivities = useMemo(
+    () =>
+      messageParts
+        .map(readAgentActivityPart)
+        .filter((event): event is AgentActivity => event !== null),
+    [messageParts]
+  );
+  const agentReasonings = useMemo(
+    () =>
+      messageParts
+        .map(readAgentReasoningPart)
+        .filter((event): event is AgentReasoning => event !== null),
+    [messageParts]
+  );
+  const hasAgentEvents = agentActivities.length > 0 || agentReasonings.length > 0;
 
   return (
     <MessagePrimitive.Root
       data-slot="aui_assistant-message-root"
       data-role="assistant"
-      className="group fade-in slide-in-from-bottom-1 animate-in relative duration-200"
+      className="group fade-in slide-in-from-bottom-1 animate-in relative min-w-0 max-w-full duration-200"
     >
       <div className="min-w-0">
         <div
           data-slot="aui_assistant-message-content"
-          className="text-(--claude-text) wrap-break-word"
+          className="min-w-0 max-w-full text-(--claude-text) wrap-break-word"
         >
-          {approvalPart?.data && <ApprovalGate data={approvalPart.data} />}
           <MessagePrimitive.GroupedParts
             groupBy={groupPartByType({
               reasoning: ["group-chainOfThought", "group-reasoning"],
@@ -389,13 +413,21 @@ const AssistantMessage: FC = () => {
                   return <Reasoning {...part} />;
                 case "tool-call":
                   return part.toolUI ?? <ToolFallback {...part} />;
-                case "indicator":
-                  return <AssistantPendingIndicator />;
                 default:
                   return null;
               }
             }}
           </MessagePrimitive.GroupedParts>
+          {hasAgentEvents ? (
+            <ThinkingActivityPanel
+              activities={agentActivities}
+              reasonings={agentReasonings}
+              isBusy={isRunning}
+            />
+          ) : null}
+          {isRunning && !hasVisibleText && !hasAgentEvents ? (
+            <ThinkingLoading className="max-w-[min(100%,32rem)]" />
+          ) : null}
           <CitationHints />
           <MessageError />
         </div>

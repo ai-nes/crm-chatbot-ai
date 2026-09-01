@@ -64,8 +64,8 @@
   --radius-sm: 0.225rem;
 
   /* Fonts */
-  --font-sans: var(--font-quicksand);
-  --font-serif: var(--font-open-sans);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -93,42 +93,93 @@
   background-color: var(--claude-bg);
 }
 
-html:has(.claude-chat),
-html:has(.claude-chat) body {
+/* Chat container */
+html,
+body {
   height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
-  background-color: #f9fafb;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-/* Viewport scroll: fill hết vùng trên composer, tránh thanh scroll bị hở */
+html:has(.claude-chat),
+html:has(.claude-chat) body,
+html:has(.chatbot-popover-root),
+html:has(.chatbot-popover-root) body {
+  height: 100%;
+  overflow: hidden;
+  background-color: transparent;
+}
+
 .claude-chat .aui-thread-root {
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .claude-chat [data-slot="aui_thread-viewport"] {
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   overscroll-behavior: contain;
+}
+
+/* Ẩn triệt để thanh cuộn native và nút mũi tên trên mọi container cha */
+* {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.claude-chat [data-slot="aui_thread-viewport"]::-webkit-scrollbar {
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.chatbot-popover-root::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar,
+.base-ui-disable-scrollbar::-webkit-scrollbar {
   display: none;
-  width: 0;
-  height: 0;
+  width: 0px;
+  height: 0px;
+  background: transparent;
 }
 
-/* Ẩn scrollbar hệ thống trong toàn bộ chat (vẫn scroll được) */
-.claude-chat .no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button,
+.aui-thread-scroll-viewport::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
 }
 
-.claude-chat .no-scrollbar::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+/* Thanh cuộn Custom ScrollArea thanh thoát, mỏng đẹp cho thread chat */
+.aui-thread-scroll-viewport {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(107, 114, 128, 0.35) transparent;
+}
+
+.aui-thread-scroll-viewport::-webkit-scrollbar {
+  display: block;
+  width: 5px;
+  height: 5px;
+}
+
+.aui-thread-scroll-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.aui-thread-scroll-viewport::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.35);
+  border-radius: 9999px;
+}
+
+.aui-thread-scroll-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--claude-accent, #f37021);
+}
+
+.aui-thread-scroll-viewport::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Mobile: tránh tràn ngang */
@@ -148,7 +199,46 @@ html:has(.claude-chat) body {
 
 .claude-chat .aui-md {
   @apply text-[15px] leading-[1.7] text-[var(--claude-text)];
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-family:
+    var(--font-inter),
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+.claude-chat .aui-md-table-wrap {
+  max-width: 100%;
+  scrollbar-color: var(--claude-muted) transparent;
+  scrollbar-width: thin;
+}
+
+.claude-chat .aui-md-table-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+
+.claude-chat .aui-md-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.claude-chat .aui-md-table-wrap::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--claude-muted) 45%, transparent);
+}
+
+.claude-chat .aui-md-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--claude-accent);
+}
+
+.claude-chat .aui-md th,
+.claude-chat .aui-md td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .claude-chat .aui-md p {

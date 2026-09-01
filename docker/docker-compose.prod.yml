@@ -1,0 +1,44 @@
+name: crm-chatbot-prod
+
+# Production stack for the Fpilot chat UI (fpilot.faip.pro).
+#
+# TLS + public routing is handled by the host-level Cloudflare Tunnel
+# (cloudflared systemd service). Add a public hostname in the Cloudflare
+# Zero Trust dashboard:  fpilot.faip.pro  ->  http://localhost:${HTTP_PORT}
+# The container therefore only needs to listen on loopback.
+
+services:
+  web:
+    image: ${CHATBOT_IMAGE:?set CHATBOT_IMAGE in docker/.env}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "5173"
+      HOSTNAME: 0.0.0.0
+      # Server-side only secrets (NEXT_PUBLIC_* are baked into the image).
+      CHAT_API_KEY: ${CHAT_API_KEY:?set CHAT_API_KEY in docker/.env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8095}:5173"
+    networks:
+      - default
+      # Reach the crm-agents backend (service alias `app`, port 7999) that the
+      # /api/chat route proxies to. Same external network the Frappe backend
+      # joins; created by the ai-crm stack.
+      - ai-crm_backend
+    healthcheck:
+      # 127.0.0.1, not localhost: the standalone server binds IPv4 0.0.0.0
+      # only, while `localhost` resolves to ::1 first inside the container.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5173/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+networks:
+  default:
+    name: crm-chatbot-prod_default
+  ai-crm_backend:
+    external: true
+    name: ai-crm_backend

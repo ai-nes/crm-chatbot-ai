@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ChatbotRoute() {
-  return <ChatbotPage />;
+  return <ChatbotPage fullscreen />;
 }
