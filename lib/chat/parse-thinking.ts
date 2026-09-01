@@ -1,10 +1,8 @@
 /** Opening tag, optional attributes. Case-insensitive. */
-const thinkingBlockG = () =>
-  /<\s*thinking(?:\s[^>]*)?>([\s\S]*?)<\s*\/\s*thinking\s*>/gi;
+const thinkingBlockG = () => /<\s*thinking(?:\s[^>]*)?>([\s\S]*?)<\s*\/\s*thinking\s*>/gi;
 const thinkingOpenTagG = () => /<\s*thinking(?:\s[^>]*)?>/gi;
 const thinkingCloseTagG = () => /<\s*\/\s*thinking\s*>/gi;
-const THINKING_OPEN_TAIL =
-  /<\s*thinking(?:\s[^>]*)?>([\s\S]*)$/i;
+const THINKING_OPEN_TAIL = /<\s*thinking(?:\s[^>]*)?>([\s\S]*)$/i;
 const HAS_THINKING_MARKER = /<\s*thinking/i;
 
 export type ThinkingParseResult = {
@@ -69,13 +67,17 @@ export function parseThinkingFromText(raw: string): ThinkingParseResult {
 /** Header + raw RAG dump the backend injects into text (not for end users). */
 const TOOL_OUTPUT_SECTION_RE =
   /\[TOOL\s+OUTPUT[^\]]*\][^\n]*\n[\s\S]*?(?=\n\s*\*\*References\*\*)/gi;
-const TOOL_OUTPUT_MARKER_RE =
-  /\[TOOL\s+OUTPUT[^\]]*\][^\n]*(?:\n|$)/gi;
+const TOOL_OUTPUT_MARKER_RE = /\[TOOL\s+OUTPUT[^\]]*\][^\n]*(?:\n|$)/gi;
+const CITATION_SECTION_RE =
+  /\n\s*(?:\*\*\s*)?(?:References|Sources|Nguồn tham khảo)(?:\s*\*\*)?\s*:?\s*[\s\S]*$/i;
 
 export function sanitizeAssistantText(text: string): string {
   let result = stripThinkingTags(text);
   result = result.replace(TOOL_OUTPUT_SECTION_RE, "\n\n");
   result = result.replace(TOOL_OUTPUT_MARKER_RE, "");
+  // Provenance is rendered by CitationHints from the trusted envelope. Keep
+  // the answer readable and avoid duplicating full document/chunk identifiers.
+  result = result.replace(CITATION_SECTION_RE, "");
   return result.replace(/\n{3,}/g, "\n\n").trim();
 }
 
@@ -83,7 +85,7 @@ export type ThinkingDisplayPhase = "loading" | "thinking" | "answer";
 
 export function getThinkingTargetPhase(
   parsed: ThinkingParseResult,
-  isRunning: boolean,
+  isRunning: boolean
 ): ThinkingDisplayPhase {
   if (!parsed.hasThinkingBlock) {
     return isRunning ? "loading" : "answer";
@@ -99,7 +101,7 @@ const PHASE_ORDER: ThinkingDisplayPhase[] = ["loading", "thinking", "answer"];
 
 export function nextThinkingDisplayPhase(
   current: ThinkingDisplayPhase,
-  target: ThinkingDisplayPhase,
+  target: ThinkingDisplayPhase
 ): ThinkingDisplayPhase | null {
   const currentIdx = PHASE_ORDER.indexOf(current);
   const targetIdx = PHASE_ORDER.indexOf(target);

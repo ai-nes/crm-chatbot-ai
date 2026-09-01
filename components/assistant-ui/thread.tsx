@@ -20,6 +20,7 @@ import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotating-headline";
 import { VoiceOrb } from "@/components/assistant-ui/voice";
 import { ApprovalGate } from "@/components/chatbot/approval-gate";
+import { CitationHints } from "@/components/chatbot/citation-hints";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
@@ -395,6 +396,7 @@ const AssistantMessage: FC = () => {
               }
             }}
           </MessagePrimitive.GroupedParts>
+          <CitationHints />
           <MessageError />
         </div>
 
