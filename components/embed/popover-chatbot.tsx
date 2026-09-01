@@ -52,12 +52,15 @@ export function PopoverChatbot() {
 
   return (
     <div
-      className={cn("flex h-full w-full items-end justify-end", expanded ? "p-0" : "p-3 sm:p-4")}
+      className={cn(
+        "chatbot-popover-root box-border flex h-full max-h-full w-full max-w-full items-end justify-end overflow-hidden",
+        expanded ? "p-0" : "p-3 sm:p-4"
+      )}
     >
       <div
         aria-hidden={!open}
         className={cn(
-          "relative origin-bottom-right overflow-hidden bg-[var(--claude-bg)] transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none",
+          "relative box-border max-h-full max-w-full origin-bottom-right overflow-hidden bg-[var(--claude-bg)] transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none",
           expanded
             ? "h-full w-full rounded-none shadow-none"
             : "h-[min(680px,100%)] w-[min(420px,100%)] rounded-2xl shadow-[0_10px_30px_rgba(26,25,21,0.18)]",
@@ -66,7 +69,12 @@ export function PopoverChatbot() {
             : "invisible pointer-events-none translate-y-2 opacity-0"
         )}
       >
-        <ChatbotPage embedded popover onExpand={() => openFullscreen(setExpanded)} />
+        <ChatbotPage
+          embedded
+          fullscreen={expanded}
+          popover
+          onExpand={() => openFullscreen(setExpanded)}
+        />
         {expanded ? (
           <button
             type="button"

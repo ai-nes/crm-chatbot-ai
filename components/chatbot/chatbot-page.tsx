@@ -18,13 +18,20 @@ import { useEffect, useState } from "react";
 type ChatbotPageProps = {
   embedded?: boolean;
   popover?: boolean;
+  fullscreen?: boolean;
   onExpand?: () => void;
 };
 
-export function ChatbotPage({ embedded = false, popover = false, onExpand }: ChatbotPageProps) {
+export function ChatbotPage({
+  embedded = false,
+  popover = false,
+  fullscreen = false,
+  onExpand,
+}: ChatbotPageProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const authToken = useAppSelector(selectAuthToken);
+  const showHistorySidebar = !fullscreen && !popover;
 
   const handleExpand = () => {
     if (onExpand) {
@@ -93,6 +100,7 @@ export function ChatbotPage({ embedded = false, popover = false, onExpand }: Cha
       <div className={cn("claude-chat overflow-hidden", embedded ? "h-full" : "h-dvh")}>
         <ChatShell
           embedded={embedded}
+          showSidebar={showHistorySidebar}
           sidebarExpanded={sidebarExpanded}
           sidebar={
             <ChatSidebar
@@ -114,14 +122,14 @@ export function ChatbotPage({ embedded = false, popover = false, onExpand }: Cha
               >
                 <Maximize2Icon className="size-4" />
               </button>
-            ) : (
+            ) : showHistorySidebar ? (
               <ChatSidebarToggle onClick={() => setMobileSidebarOpen(true)} />
-            )}
+            ) : null}
             <div className="flex min-w-0 items-center gap-2 md:mx-auto">
               <span className="truncate text-[15px] font-medium text-(--claude-text)">Fpilot</span>
             </div>
           </header>
-          <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+          <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Thread />
           </main>
         </ChatShell>

@@ -81,6 +81,13 @@ export function EmbedAuthBridge() {
   useEffect(() => {
     if (window.parent === window) return;
 
+    // The iframe has its own persisted Redux state on localhost:5173. Clear
+    // that state before waiting for a parent token so a stale bearer from a
+    // previous standalone session cannot be forwarded to Agent. A parent that
+    // uses the documented bridge can still provide a fresh token immediately
+    // after the ready message below.
+    dispatch(logout());
+
     const targetOrigin = getReadyTargetOrigin();
     window.parent.postMessage({ type: READY_MESSAGE }, targetOrigin);
 

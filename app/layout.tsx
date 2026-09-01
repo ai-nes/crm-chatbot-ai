@@ -1,21 +1,14 @@
 import type { Metadata } from "next";
-import { Open_Sans, Quicksand } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getSiteUrl, SITE } from "@/lib/seo/site";
 
-const openSans = Open_Sans({
+const inter = Inter({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-open-sans",
-  weight: ["300", "400", "500", "600", "700", "800"],
-});
-
-const quicksand = Quicksand({
-  subsets: ["latin", "vietnamese"],
-  variable: "--font-quicksand",
-  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -38,16 +31,12 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${openSans.variable} ${quicksand.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`}>
         <Providers>
-          <TooltipProvider>
-            {children}
-          </TooltipProvider>
+          <TooltipProvider>{children}</TooltipProvider>
           <Toaster position="bottom-center" richColors closeButton theme="dark" />
         </Providers>
       </body>

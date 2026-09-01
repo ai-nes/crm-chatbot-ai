@@ -14,6 +14,7 @@
   iframe.title = "CRM Chatbot";
   iframe.allow = "microphone";
   iframe.setAttribute("aria-label", "CRM Chatbot");
+  iframe.setAttribute("scrolling", "no");
   iframe.style.position = "fixed";
   iframe.style.right = "12px";
   iframe.style.bottom = "12px";
@@ -21,6 +22,7 @@
   iframe.style.height = "88px";
   iframe.style.border = "0";
   iframe.style.background = "transparent";
+  iframe.style.overflow = "hidden";
   iframe.style.zIndex = "2147483000";
   iframe.style.transition = "width 180ms ease, height 180ms ease";
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {

@@ -14,5 +14,7 @@ export default async function EmbeddedChatbotRoute({ searchParams }: EmbeddedCha
   const params = await searchParams;
   const mode = Array.isArray(params.mode) ? params.mode[0] : params.mode;
 
-  return <ChatbotPage embedded popover={mode === "popover"} />;
+  const popover = mode === "popover";
+
+  return <ChatbotPage embedded fullscreen={!popover} popover={popover} />;
 }
