@@ -1,46 +1,14 @@
 "use client";
 
-import {
-  ChatShell,
-  ChatSidebar,
-  ChatSidebarToggle,
-} from "@/components/chatbot/chat-sidebar";
+import { ChatShell, ChatSidebar, ChatSidebarToggle } from "@/components/chatbot/chat-sidebar";
 import { Thread } from "@/components/assistant-ui/thread";
 import { usePersistentChatRuntime } from "@/hooks/usePersistentChatRuntime";
-import {
-  AssistantRuntimeProvider,
-  Suggestions,
-  useAui,
-  WebSpeechDictationAdapter,
-} from "@assistant-ui/react";
+import { AssistantRuntimeProvider, useAui, WebSpeechDictationAdapter } from "@assistant-ui/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { pickLatestUserMessageForUpstream } from "@/lib/chat/upstream-messages";
 import { seedMockDemoIfNeeded } from "@/lib/chat/seed-mock-demo";
 import type { UIMessage } from "ai";
 import { useEffect, useState } from "react";
-
-const CRM_SUGGESTIONS = Suggestions([
-  {
-    title: "Tra cứu khách hàng",
-    label: "Thông tin & lịch sử giao dịch",
-    prompt: "Làm sao để tra cứu thông tin khách hàng trong CRM?",
-  },
-  {
-    title: "Tạo ticket",
-    label: "Hỗ trợ khách hàng",
-    prompt: "Hướng dẫn tạo ticket hỗ trợ khách hàng",
-  },
-  {
-    title: "Báo cáo doanh số",
-    label: "Pipeline & KPI",
-    prompt: "Xem báo cáo doanh số và pipeline hiện tại",
-  },
-  {
-    title: "Hướng dẫn CRM",
-    label: "Tính năng chính",
-    prompt: "Hướng dẫn các tính năng chính của hệ thống CRM",
-  },
-]);
 
 export function ChatbotPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
@@ -58,9 +26,7 @@ export function ChatbotPage() {
           const parsed = JSON.parse(init.body) as {
             messages?: UIMessage[];
           };
-          const latest = parsed.messages
-            ? pickLatestUserMessageForUpstream(parsed.messages)
-            : null;
+          const latest = parsed.messages ? pickLatestUserMessageForUpstream(parsed.messages) : null;
           if (latest) {
             init = {
               ...init,
@@ -76,9 +42,7 @@ export function ChatbotPage() {
     },
   });
 
-  const aui = useAui({
-    suggestions: CRM_SUGGESTIONS,
-  });
+  const aui = useAui();
 
   return (
     <AssistantRuntimeProvider aui={aui} runtime={runtime}>
@@ -96,13 +60,9 @@ export function ChatbotPage() {
           }
         >
           <header className="sticky top-0 z-20 flex shrink-0 items-center gap-2 border-b border-(--claude-border) bg-(--claude-bg) px-4 py-3 md:hidden">
-            <ChatSidebarToggle
-              onClick={() => setMobileSidebarOpen(true)}
-            />
+            <ChatSidebarToggle onClick={() => setMobileSidebarOpen(true)} />
             <div className="flex min-w-0 items-center gap-2 md:mx-auto">
-              <span className="truncate text-[15px] font-medium text-(--claude-text)">
-                CRM Chatbot
-              </span>
+              <span className="truncate text-[15px] font-medium text-(--claude-text)">Fpilot</span>
             </div>
           </header>
           <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">

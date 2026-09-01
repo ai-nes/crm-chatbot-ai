@@ -3,10 +3,7 @@ import {
   ComposerAttachments,
   UserMessageAttachments,
 } from "@/components/assistant-ui/attachment";
-import {
-  AssistantPendingIndicator,
-  AssistantText,
-} from "@/components/assistant-ui/thinking-block";
+import { AssistantPendingIndicator, AssistantText } from "@/components/assistant-ui/thinking-block";
 import {
   Reasoning,
   ReasoningContent,
@@ -22,15 +19,11 @@ import {
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotating-headline";
 import { VoiceOrb } from "@/components/assistant-ui/voice";
+import { ApprovalGate } from "@/components/chatbot/approval-gate";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   ActionBarMorePrimitive,
@@ -41,7 +34,6 @@ import {
   ErrorPrimitive,
   groupPartByType,
   MessagePrimitive,
-  SuggestionPrimitive,
   ThreadPrimitive,
   useAui,
   useAuiState,
@@ -71,11 +63,7 @@ const ComposerTooltipButton: FC<
 > = ({ tooltip, side = "bottom", className, children, ...props }) => (
   <TooltipProvider delay={0}>
     <Tooltip>
-      <TooltipTrigger
-        render={
-          <button type="button" className={className} {...props} />
-        }
-      >
+      <TooltipTrigger render={<button type="button" className={className} {...props} />}>
         {children}
         <span className="sr-only">{tooltip}</span>
       </TooltipTrigger>
@@ -119,7 +107,7 @@ export const Thread: FC = () => {
         <div className="mx-auto w-full max-w-(--thread-max-width)">
           <Composer />
           <p className="mt-2.5 text-center text-xs text-(--claude-muted) md:mt-3">
-            CRM Chatbot có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.
+            Kiểm tra thông tin quan trọng.
           </p>
         </div>
       </div>
@@ -150,9 +138,7 @@ const ThreadViewportContent: FC = () => {
           data-slot="aui_message-group"
           className="flex flex-col gap-y-8 pt-4 pb-6 md:gap-y-10 md:pt-6 md:pb-8"
         >
-          <ThreadPrimitive.Messages>
-            {() => <ThreadMessage />}
-          </ThreadPrimitive.Messages>
+          <ThreadPrimitive.Messages>{() => <ThreadMessage />}</ThreadPrimitive.Messages>
         </div>
       )}
     </div>
@@ -196,36 +182,6 @@ const ThreadWelcome: FC = () => {
       <div className="aui-thread-welcome-center flex w-full flex-col items-center justify-center">
         <WelcomeRotatingHeadline />
       </div>
-      <ThreadSuggestions />
-    </div>
-  );
-};
-
-const ThreadSuggestions: FC = () => {
-  return (
-    <div className="aui-thread-welcome-suggestions mx-auto grid w-full min-w-0 max-w-full gap-2 @md:grid-cols-2">
-      <ThreadPrimitive.Suggestions>
-        {() => <ThreadSuggestionItem />}
-      </ThreadPrimitive.Suggestions>
-    </div>
-  );
-};
-
-const ThreadSuggestionItem: FC = () => {
-  return (
-    <div className="aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 animate-in fill-mode-both duration-200 nth-[n+3]:hidden @md:nth-[n+3]:block">
-      <SuggestionPrimitive.Trigger
-        send
-        render={
-          <Button
-            variant="ghost"
-            className="aui-thread-welcome-suggestion h-auto w-full min-w-0 max-w-full flex-wrap items-start justify-start gap-1 rounded-2xl border border-(--claude-border-subtle) bg-(--claude-card) px-4 py-3.5 text-start text-sm transition-all hover:border-(--claude-border) hover:bg-[#e5e3dd] @md:flex-col"
-          />
-        }
-      >
-        <SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1 font-medium break-words text-(--claude-text)" />
-        <SuggestionPrimitive.Description className="aui-thread-welcome-suggestion-text-2 break-words text-(--claude-muted) empty:hidden" />
-      </SuggestionPrimitive.Trigger>
     </div>
   );
 };
@@ -236,8 +192,7 @@ const ComposerInlineDictationOrb: FC = () => {
 
   if (!dictation || !hasMessages) return null;
 
-  const orbState: VoiceOrbState =
-    dictation.status.type === "starting" ? "connecting" : "listening";
+  const orbState: VoiceOrbState = dictation.status.type === "starting" ? "connecting" : "listening";
 
   return (
     <div className="flex items-center gap-3 px-1 py-1">
@@ -263,7 +218,7 @@ const Composer: FC = () => {
         <ComposerAttachments />
         <ComposerInlineDictationOrb />
         <ComposerPrimitive.Input
-          placeholder="Trả lời CRM Chatbot..."
+          placeholder="Trả lời Fpilot..."
           className="aui-composer-input max-h-40 min-h-12 w-full resize-none bg-transparent px-1 py-1 text-[15px] text-(--claude-text) outline-none placeholder:text-(--claude-muted)"
           rows={1}
           autoFocus
@@ -332,7 +287,7 @@ const ComposerDictationButton: FC = () => {
         "aui-composer-dictate",
         isActive
           ? "animate-pulse border-red-400 bg-red-50 text-red-500 hover:bg-red-100"
-          : "border-(--claude-border) bg-transparent text-(--claude-muted) hover:bg-(--claude-card) hover:text-(--claude-text)",
+          : "border-(--claude-border) bg-transparent text-(--claude-muted) hover:bg-(--claude-card) hover:text-(--claude-text)"
       )}
       aria-label={isActive ? "Dừng ghi âm" : "Ghi âm giọng nói"}
     >
@@ -374,6 +329,14 @@ const MessageError: FC = () => {
 const AssistantMessage: FC = () => {
   const ACTION_BAR_PT = "pt-1.5";
   const ACTION_BAR_HEIGHT = `-mb-7.5 min-h-7.5 ${ACTION_BAR_PT}`;
+  const approvalPart = useAuiState((s) =>
+    s.message.parts.find(
+      (part) =>
+        (String(part.type) === "data" &&
+          String((part as { name?: string }).name) === "approval-required") ||
+        String(part.type) === "data-approval-required"
+    )
+  ) as unknown as { data?: Record<string, unknown> } | undefined;
 
   return (
     <MessagePrimitive.Root
@@ -386,54 +349,53 @@ const AssistantMessage: FC = () => {
           data-slot="aui_assistant-message-content"
           className="text-(--claude-text) wrap-break-word"
         >
-            <MessagePrimitive.GroupedParts
-              groupBy={groupPartByType({
-                reasoning: ["group-chainOfThought", "group-reasoning"],
-                "tool-call": ["group-chainOfThought", "group-tool"],
-                "standalone-tool-call": [],
-              })}
-            >
-              {({ part, children }) => {
-                switch (part.type) {
-                  case "group-chainOfThought":
-                    return (
-                      <div data-slot="aui_chain-of-thought">{children}</div>
-                    );
-                  case "group-reasoning": {
-                    const running = part.status.type === "running";
-                    return (
-                      <ReasoningRoot defaultOpen={running}>
-                        <ReasoningTrigger active={running} />
-                        <ReasoningContent aria-busy={running}>
-                          <ReasoningText>{children}</ReasoningText>
-                        </ReasoningContent>
-                      </ReasoningRoot>
-                    );
-                  }
-                  case "group-tool":
-                    return (
-                      <ToolGroupRoot>
-                        <ToolGroupTrigger
-                          count={part.indices.length}
-                          active={part.status.type === "running"}
-                        />
-                        <ToolGroupContent>{children}</ToolGroupContent>
-                      </ToolGroupRoot>
-                    );
-                  case "text":
-                    return <AssistantText />;
-                  case "reasoning":
-                    return <Reasoning {...part} />;
-                  case "tool-call":
-                    return part.toolUI ?? <ToolFallback {...part} />;
-                  case "indicator":
-                    return <AssistantPendingIndicator />;
-                  default:
-                    return null;
+          {approvalPart?.data && <ApprovalGate data={approvalPart.data} />}
+          <MessagePrimitive.GroupedParts
+            groupBy={groupPartByType({
+              reasoning: ["group-chainOfThought", "group-reasoning"],
+              "tool-call": ["group-chainOfThought", "group-tool"],
+              "standalone-tool-call": [],
+            })}
+          >
+            {({ part, children }) => {
+              switch (part.type) {
+                case "group-chainOfThought":
+                  return <div data-slot="aui_chain-of-thought">{children}</div>;
+                case "group-reasoning": {
+                  const running = part.status.type === "running";
+                  return (
+                    <ReasoningRoot defaultOpen={running}>
+                      <ReasoningTrigger active={running} />
+                      <ReasoningContent aria-busy={running}>
+                        <ReasoningText>{children}</ReasoningText>
+                      </ReasoningContent>
+                    </ReasoningRoot>
+                  );
                 }
-              }}
-            </MessagePrimitive.GroupedParts>
-            <MessageError />
+                case "group-tool":
+                  return (
+                    <ToolGroupRoot>
+                      <ToolGroupTrigger
+                        count={part.indices.length}
+                        active={part.status.type === "running"}
+                      />
+                      <ToolGroupContent>{children}</ToolGroupContent>
+                    </ToolGroupRoot>
+                  );
+                case "text":
+                  return <AssistantText />;
+                case "reasoning":
+                  return <Reasoning {...part} />;
+                case "tool-call":
+                  return part.toolUI ?? <ToolFallback {...part} />;
+                case "indicator":
+                  return <AssistantPendingIndicator />;
+                default:
+                  return null;
+              }
+            }}
+          </MessagePrimitive.GroupedParts>
+          <MessageError />
         </div>
 
         <div
@@ -527,10 +489,7 @@ const UserMessage: FC = () => {
             <UserActionBar />
           </div>
         </div>
-        <BranchPicker
-          data-slot="aui_user-branch-picker"
-          className="-me-1 justify-end"
-        />
+        <BranchPicker data-slot="aui_user-branch-picker" className="-me-1 justify-end" />
       </div>
     </MessagePrimitive.Root>
   );
@@ -559,10 +518,7 @@ const UserActionBar: FC = () => {
 
 const EditComposer: FC = () => {
   return (
-    <MessagePrimitive.Root
-      data-slot="aui_edit-composer-wrapper"
-      className="flex justify-end px-2"
-    >
+    <MessagePrimitive.Root data-slot="aui_edit-composer-wrapper" className="flex justify-end px-2">
       <ComposerPrimitive.Root className="aui-edit-composer-root flex w-full max-w-[85%] flex-col rounded-3xl border border-(--claude-border) bg-(--claude-user-bubble)">
         <ComposerPrimitive.Input
           className="aui-edit-composer-input min-h-14 w-full resize-none bg-transparent p-4 text-[15px] text-(--claude-text) outline-none"
@@ -570,9 +526,7 @@ const EditComposer: FC = () => {
         />
         <div className="aui-edit-composer-footer mx-3 mb-3 flex items-center gap-2 self-end">
           <ComposerPrimitive.Cancel
-            render={
-              <Button variant="ghost" size="sm" className="text-(--claude-muted)" />
-            }
+            render={<Button variant="ghost" size="sm" className="text-(--claude-muted)" />}
           >
             Hủy
           </ComposerPrimitive.Cancel>
@@ -592,26 +546,18 @@ const EditComposer: FC = () => {
   );
 };
 
-const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
-  className,
-  ...rest
-}) => {
+const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest }) => {
   return (
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
       className={cn(
         "aui-branch-picker-root inline-flex items-center text-xs text-(--claude-muted)",
-        className,
+        className
       )}
       {...rest}
     >
       <BranchPickerPrimitive.Previous
-        render={
-          <TooltipIconButton
-            tooltip="Trước"
-            className="size-6 text-(--claude-muted)"
-          />
-        }
+        render={<TooltipIconButton tooltip="Trước" className="size-6 text-(--claude-muted)" />}
       >
         <ChevronLeftIcon className="size-3.5" />
       </BranchPickerPrimitive.Previous>
@@ -619,12 +565,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
         <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
       </span>
       <BranchPickerPrimitive.Next
-        render={
-          <TooltipIconButton
-            tooltip="Sau"
-            className="size-6 text-(--claude-muted)"
-          />
-        }
+        render={<TooltipIconButton tooltip="Sau" className="size-6 text-(--claude-muted)" />}
       >
         <ChevronRightIcon className="size-3.5" />
       </BranchPickerPrimitive.Next>

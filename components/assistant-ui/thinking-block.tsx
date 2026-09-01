@@ -24,11 +24,7 @@ const GLOW_CHAR_STAGGER_S = GLOW_CYCLE_S / THINKING_LABEL_CHARS.length;
 
 const DEFAULT_SKELETON_WIDTHS = [92, 78, 64] as const;
 
-const phasePanelClass = (
-  active: boolean,
-  exiting: boolean,
-  forceOpen: boolean,
-) =>
+const phasePanelClass = (active: boolean, exiting: boolean, forceOpen: boolean) =>
   cn(
     "grid transition-[grid-template-rows,opacity,transform] duration-(--thinking-phase-ms) ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
     forceOpen || active || exiting ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
@@ -37,7 +33,7 @@ const phasePanelClass = (
       : exiting
         ? "-translate-y-1 opacity-0"
         : "translate-y-1 opacity-0",
-    !forceOpen && !active && !exiting && "pointer-events-none",
+    !forceOpen && !active && !exiting && "pointer-events-none"
   );
 
 /** Header cố định — glow lặp từng ký tự: S → u → y → … → i */
@@ -49,7 +45,7 @@ const ThinkingHeaderLoop: FC<{ loop: boolean }> = ({ loop }) => (
     <BrainIcon
       className={cn(
         "size-3.5 shrink-0",
-        loop ? "aui-thinking-brain-glow" : "text-(--claude-muted) opacity-80",
+        loop ? "aui-thinking-brain-glow" : "text-(--claude-muted) opacity-80"
       )}
       style={
         loop
@@ -60,16 +56,13 @@ const ThinkingHeaderLoop: FC<{ loop: boolean }> = ({ loop }) => (
       }
       aria-hidden
     />
-    <span
-      className="inline-flex items-baseline [text-shadow:none]"
-      aria-label={THINKING_LABEL}
-    >
+    <span className="inline-flex items-baseline [text-shadow:none]" aria-label={THINKING_LABEL}>
       {THINKING_LABEL_CHARS.map((char, index) => (
         <span
           key={`${char}-${index}`}
           className={cn(
             "inline-block min-w-[0.2em]",
-            loop ? "aui-thinking-glow-token" : "text-(--claude-muted)",
+            loop ? "aui-thinking-glow-token" : "text-(--claude-muted)"
           )}
           style={
             loop
@@ -88,11 +81,7 @@ const ThinkingHeaderLoop: FC<{ loop: boolean }> = ({ loop }) => (
 );
 
 const ThinkingPlaceholderSkeleton: FC = () => (
-  <div
-    data-slot="aui_thinking-text-skeleton"
-    className="space-y-2.5 py-0.5"
-    aria-hidden
-  >
+  <div data-slot="aui_thinking-text-skeleton" className="space-y-2.5 py-0.5" aria-hidden>
     {DEFAULT_SKELETON_WIDTHS.map((width, i) => (
       <div
         key={width}
@@ -106,25 +95,14 @@ const ThinkingPlaceholderSkeleton: FC = () => (
   </div>
 );
 
-const ThinkingTextBody: FC<{ text: string; isBusy: boolean }> = ({
-  text,
-  isBusy,
-}) => {
+const ThinkingTextBody: FC<{ text: string; isBusy: boolean }> = ({ text, isBusy }) => {
   if (!text.trim() && isBusy) {
     return <ThinkingPlaceholderSkeleton />;
   }
 
   return (
-    <p
-      data-slot="aui_thinking-text"
-      className="text-sm leading-relaxed text-(--claude-muted)"
-    >
-      <GradualRevealText
-        text={text}
-        by="word"
-        active={isBusy}
-        tokenDelayMs={28}
-      />
+    <p data-slot="aui_thinking-text" className="text-sm leading-relaxed text-(--claude-muted)">
+      <GradualRevealText text={text} by="word" active={isBusy} tokenDelayMs={28} />
     </p>
   );
 };
@@ -138,7 +116,7 @@ export const ThinkingContentPanel: FC<{
     data-slot="aui_thinking-content"
     className={cn(
       "aui-thinking-panel relative overflow-hidden rounded-lg border border-(--claude-border-subtle) bg-(--claude-card)/60 px-3 py-2.5 ps-4",
-      isExiting && "aui-thinking-panel--exit",
+      isExiting && "aui-thinking-panel--exit"
     )}
     aria-busy={isBusy}
   >
@@ -157,10 +135,7 @@ export const ThinkingPanelImmediate: FC<React.ComponentProps<"div">> = ({
   </div>
 );
 
-export const ThinkingLoading: FC<React.ComponentProps<"div">> = ({
-  className,
-  ...props
-}) => (
+export const ThinkingLoading: FC<React.ComponentProps<"div">> = ({ className, ...props }) => (
   <div
     data-slot="aui_thinking-loading"
     className={cn("aui-thinking-loading", className)}
@@ -177,17 +152,12 @@ const AssistantTextWithThinking: FC = () => {
   const isRunning = useAuiState((s) => s.message.status?.type === "running");
 
   const parsed = useMemo(() => parseThinkingFromText(text), [text]);
-  const targetPhase = useMemo(
-    () => getThinkingTargetPhase(parsed, isRunning),
-    [parsed, isRunning],
-  );
+  const targetPhase = useMemo(() => getThinkingTargetPhase(parsed, isRunning), [parsed, isRunning]);
 
   const [displayPhase, setDisplayPhase] = useState<ThinkingDisplayPhase>(() =>
-    parsed.thinking.trim() ? "thinking" : "loading",
+    parsed.thinking.trim() ? "thinking" : "loading"
   );
-  const [exitingPhase, setExitingPhase] = useState<ThinkingDisplayPhase | null>(
-    null,
-  );
+  const [exitingPhase, setExitingPhase] = useState<ThinkingDisplayPhase | null>(null);
   const [animatePhases, setAnimatePhases] = useState(isRunning);
 
   useEffect(() => {
@@ -216,9 +186,7 @@ const AssistantTextWithThinking: FC = () => {
     }
 
     const skipDelay =
-      displayPhase === "loading" &&
-      next === "thinking" &&
-      parsed.thinking.trim().length > 0;
+      displayPhase === "loading" && next === "thinking" && parsed.thinking.trim().length > 0;
     const delay = skipDelay ? 100 : PHASE_MS;
 
     setExitingPhase(displayPhase);
@@ -238,10 +206,8 @@ const AssistantTextWithThinking: FC = () => {
 
   const showAnswer = displayPhase === "answer";
   const showThinkingPanel = !showAnswer;
-  const panelActive =
-    displayPhase === "loading" || displayPhase === "thinking";
-  const panelExiting =
-    exitingPhase === "loading" || exitingPhase === "thinking";
+  const panelActive = displayPhase === "loading" || displayPhase === "thinking";
+  const panelExiting = exitingPhase === "loading" || exitingPhase === "thinking";
   const isPanelBusy = isRunning && !showAnswer;
   const forcePanelOpen = isRunning && showThinkingPanel;
 
@@ -252,9 +218,7 @@ const AssistantTextWithThinking: FC = () => {
       style={{ "--thinking-phase-ms": `${PHASE_MS}ms` } as React.CSSProperties}
     >
       {showThinkingPanel ? (
-        <div
-          className={phasePanelClass(panelActive, panelExiting, forcePanelOpen)}
-        >
+        <div className={phasePanelClass(panelActive, panelExiting, forcePanelOpen)}>
           <div className="min-h-0 overflow-hidden">
             <ThinkingContentPanel
               text={parsed.thinking}
@@ -279,8 +243,10 @@ const AssistantTextWithThinking: FC = () => {
 
 const AssistantTextImpl: FC = () => {
   const { text } = useMessagePartText();
-  const isRunning = useAuiState((s) => s.message.status?.type === "running");
-  const useThinkingFlow = isRunning || hasThinkingInText(text);
+  // Ordinary assistant text must remain visible while the SSE response is
+  // running. Only messages that actually contain a thinking marker use the
+  // phase panel; otherwise the Markdown renderer receives each text-delta.
+  const useThinkingFlow = hasThinkingInText(text);
 
   if (!useThinkingFlow) {
     return <MarkdownText preprocess={sanitizeAssistantText} />;
@@ -292,9 +258,7 @@ const AssistantTextImpl: FC = () => {
 export const AssistantText = memo(AssistantTextImpl);
 
 export const AssistantPendingIndicator: FC = () => {
-  const hasTextPart = useAuiState((s) =>
-    s.message.parts.some((p) => p.type === "text"),
-  );
+  const hasTextPart = useAuiState((s) => s.message.parts.some((p) => p.type === "text"));
   if (hasTextPart) return null;
   return (
     <ThinkingPanelImmediate

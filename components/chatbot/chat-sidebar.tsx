@@ -45,7 +45,7 @@ const SidebarPanel: FC<{
         className={cn(
           "flex items-center justify-between gap-2 pr-3",
           sidebarFadeClass,
-          collapsed ? "opacity-0" : "opacity-100",
+          collapsed ? "opacity-0" : "opacity-100"
         )}
         style={sidebarFadeMs}
         aria-hidden={collapsed}
@@ -55,7 +55,7 @@ const SidebarPanel: FC<{
           style={{ paddingLeft: SIDEBAR_PLUS_INDENT }}
         >
           <span className="truncate text-sm font-semibold tracking-tight text-(--claude-text)">
-            CRM Chatbot
+            Fpilot
           </span>
         </div>
         <Button
@@ -77,7 +77,7 @@ const SidebarPanel: FC<{
         className={cn(
           "absolute inset-0 flex items-center",
           sidebarFadeClass,
-          collapsed ? "opacity-100" : "pointer-events-none opacity-0",
+          collapsed ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         style={sidebarFadeMs}
         aria-hidden={!collapsed}
@@ -123,10 +123,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
           showCloseButton={false}
         >
           <SheetTitle className="sr-only">Danh sách hội thoại</SheetTitle>
-          <SidebarPanel
-            onClose={() => onOpenChange?.(false)}
-            closeLabel="Đóng sidebar"
-          />
+          <SidebarPanel onClose={() => onOpenChange?.(false)} closeLabel="Đóng sidebar" />
         </SheetContent>
       </Sheet>
     );
@@ -151,7 +148,7 @@ export const ChatSidebarToggle: FC<{
     size="icon"
     className={cn(
       "size-8 text-[var(--claude-muted)] hover:bg-[#eceae4] hover:text-[var(--claude-text)]",
-      className,
+      className
     )}
     onClick={onClick}
     aria-label="Mở sidebar"
@@ -166,9 +163,7 @@ export const ChatShell: FC<{
   children: ReactNode;
 }> = ({ sidebar, sidebarExpanded = true, children }) => {
   const isMobile = useIsMobile();
-  const sidebarWidth = sidebarExpanded
-    ? SIDEBAR_WIDTH
-    : SIDEBAR_COLLAPSED_WIDTH;
+  const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH;
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[var(--claude-bg)]">

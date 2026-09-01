@@ -35,7 +35,7 @@ export function ChatbotAvatar({ size = "sm", className }: ChatbotAvatarProps) {
         size === "md" && "size-10",
         size === "lg" && "size-14",
         size === "xl" && "size-24",
-        className,
+        className
       )}
     />
   );
@@ -49,7 +49,7 @@ export function ChatbotMascot({ className }: ChatbotMascotProps) {
   return (
     <Image
       src={CHATBOT_MASCOT_PATH}
-      alt="CRM Chatbot"
+      alt="Fpilot"
       width={192}
       height={192}
       priority

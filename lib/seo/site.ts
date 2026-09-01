@@ -3,8 +3,8 @@ export function getSiteUrl(): string {
 }
 
 export const SITE = {
-  name: "CRM Chatbot",
+  name: "Fpilot",
   shortName: "CRM",
-  defaultDescription: "CRM Chatbot — hỗ trợ khách hàng thông minh",
+  defaultDescription: "Fpilot — hỗ trợ tuyển sinh thông minh",
   locale: "vi_VN",
 };
