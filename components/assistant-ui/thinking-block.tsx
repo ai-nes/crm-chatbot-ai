@@ -307,9 +307,8 @@ const ThinkingActivityList: FC<{
       className="mb-2 space-y-1.5 text-xs text-(--claude-muted)"
     >
       {[...activities.slice(-6), ...reasonings.slice(-3)].map((activity, index) => {
-        const reasoningText =
-          (activity as AgentReasoning).reasoning?.analysis ??
-          (activity as AgentReasoning).reasoning?.next_step;
+        const reasoning = (activity as AgentReasoning).reasoning;
+        const reasoningText = reasoning?.analysis ?? reasoning?.next_step;
         const completed =
           isActivityCompleted(activity) ||
           Boolean(activity.activity_id && completedActivityIds.has(activity.activity_id));
@@ -331,7 +330,17 @@ const ThinkingActivityList: FC<{
               )}
               aria-hidden
             />
-            <span className="min-w-0">{label}</span>
+            <span className="min-w-0">
+              {label}
+              {reasoning ? (
+                <span className="mt-0.5 block space-y-0.5 text-[11px] text-(--claude-muted)/90">
+                  {reasoning.observed ? <span className="block">Đã nhận: {reasoning.observed}</span> : null}
+                  {reasoning.implication ? <span className="block">Ý nghĩa: {reasoning.implication}</span> : null}
+                  {reasoning.uncertainty ? <span className="block">Chưa thể khẳng định: {reasoning.uncertainty}</span> : null}
+                  {reasoning.next_step ? <span className="block">Tiếp theo: {reasoning.next_step}</span> : null}
+                </span>
+              ) : null}
+            </span>
           </div>
         );
       })}
@@ -513,7 +522,7 @@ export const AssistantPendingIndicator: FC = () => {
   return (
     <ThinkingPanelImmediate
       data-slot="aui_assistant-message-indicator"
-      aria-label="Assistant is working"
+      aria-label="Trợ lý đang xử lý"
     />
   );
 };

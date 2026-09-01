@@ -140,7 +140,7 @@ data: {"type":"finish"}
 
 | Event | Mục đích |
 |-------|----------|
-| `reasoning-start`, `reasoning-delta`, `reasoning-end` | Chain-of-thought |
+| `data-agent-reasoning` | Tóm tắt suy luận an toàn, có cấu trúc; không phải chain-of-thought nội bộ |
 | `tool-input-*`, `tool-output-*` | Tool calling |
 | `error` | Lỗi trong stream |
 
