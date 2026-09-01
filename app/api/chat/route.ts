@@ -21,6 +21,7 @@ export async function POST(req: Request) {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   const apiKey = process.env.CHAT_API_KEY ?? "CHANGE_ME_to_a_long_random_secret";
+  const authorization = req.headers.get("authorization");
 
   const upstreamBody: { messages: UIMessage[]; id?: string } = {
     messages: [latestUser],
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
     headers: {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
+      ...(authorization ? { Authorization: authorization } : {}),
     },
     body: JSON.stringify(upstreamBody),
   });
