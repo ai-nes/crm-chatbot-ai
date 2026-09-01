@@ -2,12 +2,14 @@
 
 Canonical cross-repository handoff:
 
-`E:\Working\FPT\crm\ai\crm-agents\docs\handoff-fpilot-crm.md`
+`../ai/crm-agents/docs/handoff-fpilot-crm.md`
 
 Sibling repositories:
 
-- Agent backend: `E:\Working\FPT\crm\ai\crm-agents` (`E:\Working\FPT\crm\ai\crm-agents\.git`)
-- Frappe CRM: `E:\Working\FPT\crm\frappe-crm` (`E:\Working\FPT\crm\frappe-crm\.git`)
+- Agent backend: `../ai/crm-agents` (`../ai/crm-agents/.git`)
+- Frappe CRM: `../frappe-crm` (`../frappe-crm/.git`)
+
+These paths are relative to the common workspace layout and intentionally contain no machine-specific absolute path.
 
 UI entry point: `http://localhost:3000/chatbot`.
 
