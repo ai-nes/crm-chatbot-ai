@@ -17,7 +17,9 @@ env:
   EC2_USER: ubuntu
   DEPLOY_DIR: /opt/crm-chatbot-ai
   # NEXT_PUBLIC_* values baked into the client bundle at build time.
-  NEXT_PUBLIC_API_URL: https://crm.faip.pro/
+  # Server-side only: the /api/chat route proxies to the crm-agents backend
+  # over the shared `ai-crm_backend` docker network (service alias `app`).
+  NEXT_PUBLIC_API_URL: http://app:7999
   NEXT_PUBLIC_APP_URL: https://fpilot.faip.pro
   NEXT_PUBLIC_ENV: production
   NEXT_PUBLIC_COOKIE_DOMAIN: .faip.pro

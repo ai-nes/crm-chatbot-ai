@@ -21,6 +21,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "127.0.0.1:${HTTP_PORT:-8095}:5173"
+    networks:
+      - default
+      # Reach the crm-agents backend (service alias `app`, port 7999) that the
+      # /api/chat route proxies to. Same external network the Frappe backend
+      # joins; created by the ai-crm stack.
+      - ai-crm_backend
     healthcheck:
       # 127.0.0.1, not localhost: the standalone server binds IPv4 0.0.0.0
       # only, while `localhost` resolves to ::1 first inside the container.
@@ -29,3 +35,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+networks:
+  default:
+    name: crm-chatbot-prod_default
+  ai-crm_backend:
+    external: true
+    name: ai-crm_backend

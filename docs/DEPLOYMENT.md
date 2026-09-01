@@ -82,8 +82,12 @@ curl -fsS https://fpilot.faip.pro/api/health      # {"status":"ok",...}
 - **`NEXT_PUBLIC_*` are build-time.** Changing any of them (API URL, cookie
   domain, embed allowlist) means editing `.github/workflows/deploy.yml` and
   redeploying — the running container cannot pick up new values.
-- **`NEXT_PUBLIC_API_URL`** is `https://crm.faip.pro/` — the chat route proxies
-  `POST {API_URL}/api/v1/chat` server-side with the `x-api-key` header.
+- **`NEXT_PUBLIC_API_URL`** is `http://app:7999` — used only server-side by the
+  `/api/chat` route, which proxies `POST {API_URL}/api/v1/chat` with the
+  `x-api-key` header. `app` is the crm-agents container on the shared
+  `ai-crm_backend` docker network (declared `external` in the compose file).
+  Client-side auth (`/api/v1/auth/*`) and SignalR would not resolve this host
+  from a browser; they are unused by the demo chat flow.
 - **`CHAT_API_KEY`** must match `API_KEY` in `/opt/ai-crm/.env`, otherwise the
   agent backend returns 401.
 - **Embed origins** (`NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS`) currently allow
@@ -103,7 +107,7 @@ sudo CHATBOT_IMAGE=annguyen11/crm-chatbot:<previous-sha> \
 
 ```bash
 docker build -t crm-chatbot:test \
-  --build-arg NEXT_PUBLIC_API_URL=https://crm.faip.pro/ .
+  --build-arg NEXT_PUBLIC_API_URL=http://app:7999 .
 docker run --rm -p 8095:5173 -e CHAT_API_KEY=dummy crm-chatbot:test
 curl -fsS http://localhost:8095/api/health
 ```
