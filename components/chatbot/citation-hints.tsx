@@ -2,6 +2,7 @@
 
 import { BookOpenIcon } from "lucide-react";
 import { useAuiState } from "@assistant-ui/react";
+import { useMemo } from "react";
 
 type Citation = {
   doc_id?: string;
@@ -36,7 +37,8 @@ function getCitations(parts: readonly unknown[]): Citation[] {
 
 /** Compact provenance hints; the full source identity is revealed on hover/focus. */
 export function CitationHints() {
-  const citations = useAuiState((state) => getCitations(state.message.parts));
+  const messageParts = useAuiState((state) => state.message.parts);
+  const citations = useMemo(() => getCitations(messageParts), [messageParts]);
   if (!citations.length) return null;
 
   return (
