@@ -161,6 +161,11 @@ export function ApprovalGate({ data }: { data: ApprovalData }) {
 }
 
 export function ComposerApprovalPrompt() {
+  // Readonly demo never proposes a CRM Action, so the agent backend never
+  // streams an approval-required data part either — this flag only removes
+  // the dead UI surface explicitly instead of relying on that implicitly.
+  const readonlyDemo = process.env.NEXT_PUBLIC_COPILOT_DEMO_READONLY === "true";
+
   const lastAssistantMessage = useAuiState((s) => {
     const msgs = s.thread.messages;
     for (let i = msgs.length - 1; i >= 0; i--) {
@@ -183,7 +188,7 @@ export function ComposerApprovalPrompt() {
 
   const { state, error, decide } = useApprovalDecision(proposalId);
 
-  if (!data || state === "approved" || state === "rejected") return null;
+  if (readonlyDemo || !data || state === "approved" || state === "rejected") return null;
 
   return (
     <div className="mb-2.5 overflow-hidden rounded-2xl border border-(--claude-border) bg-(--claude-surface) p-3.5 shadow-sm transition-all animate-in fade-in slide-in-from-bottom-2 duration-200">
