@@ -27,7 +27,6 @@ import {
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotating-headline";
 import { VoiceOrb } from "@/components/assistant-ui/voice";
-import { ComposerApprovalPrompt } from "@/components/chatbot/approval-gate";
 import { CitationHints } from "@/components/chatbot/citation-hints";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
@@ -216,7 +215,6 @@ const ComposerInlineDictationOrb: FC = () => {
 const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full min-w-0 max-w-full flex-col">
-      <ComposerApprovalPrompt />
       <ComposerPrimitive.AttachmentDropzone
         render={
           <div
@@ -348,6 +346,13 @@ const AssistantMessage: FC = () => {
     )
   );
   const messageParts = useAuiState((s) => s.message.parts);
+  // A tool waiting for the user's approval must not hide inside a collapsed group.
+  const awaitsApproval = messageParts.some(
+    (part) =>
+      part.type === "tool-call" &&
+      part.approval !== undefined &&
+      part.approval.approved === undefined,
+  );
   const agentActivities = useMemo(
     () =>
       messageParts
@@ -399,7 +404,7 @@ const AssistantMessage: FC = () => {
                 }
                 case "group-tool":
                   return (
-                    <ToolGroupRoot>
+                    <ToolGroupRoot open={awaitsApproval ? true : undefined}>
                       <ToolGroupTrigger
                         count={part.indices.length}
                         active={part.status.type === "running"}

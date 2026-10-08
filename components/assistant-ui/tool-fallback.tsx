@@ -19,6 +19,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { ToolApprovalCard } from "@/components/chatbot/tool-approval";
 
 const ANIMATION_DURATION = 200;
 
@@ -269,13 +270,26 @@ function ToolFallbackError({
 }
 
 const ToolFallbackImpl: ToolCallMessagePartComponent = ({
+  toolCallId,
   toolName,
   argsText,
   result,
   status,
+  approval,
+  respondToApproval,
 }) => {
   const isCancelled =
     status?.type === "incomplete" && status.reason === "cancelled";
+
+  if (approval && approval.approved === undefined) {
+    return (
+      <ToolApprovalCard
+        toolCallId={toolCallId}
+        approval={approval}
+        respondToApproval={respondToApproval}
+      />
+    );
+  }
 
   return (
     <ToolFallbackRoot
