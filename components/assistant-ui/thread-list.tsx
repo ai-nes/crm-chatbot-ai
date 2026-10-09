@@ -12,7 +12,7 @@ import {
   ThreadListItemPrimitive,
   ThreadListPrimitive,
 } from "@assistant-ui/react";
-import { ArchiveIcon, MoreHorizontalIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { MoreHorizontalIcon, PlusIcon, TrashIcon } from "lucide-react";
 import type { FC } from "react";
 import { cn } from "@/lib/utils";
 
@@ -137,14 +137,6 @@ const ThreadListItemMore: FC = () => {
         align="start"
         className="aui-thread-list-item-more-content z-50 min-w-36 overflow-hidden rounded-xl border border-(--claude-border) bg-(--claude-surface) p-1 shadow-lg"
       >
-        <ThreadListItemPrimitive.Archive
-          render={
-            <ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none select-none hover:bg-[#f3f4f6]" />
-          }
-        >
-          <ArchiveIcon className="size-4" />
-          Lưu trữ
-        </ThreadListItemPrimitive.Archive>
         <ThreadListItemPrimitive.Delete
           render={
             <ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-red-600 outline-none select-none hover:bg-red-50" />

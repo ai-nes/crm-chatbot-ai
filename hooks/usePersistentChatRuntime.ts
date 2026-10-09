@@ -12,7 +12,7 @@ import {
   AssistantChatTransport,
   type UseChatRuntimeOptions,
 } from "@assistant-ui/react-ai-sdk";
-import { useLocalStorageThreadAdapter } from "@/lib/chat/local-storage-thread-adapter";
+import { useServerThreadAdapter } from "@/lib/chat/server-thread-adapter";
 import { useChat, type UIMessage } from "@ai-sdk/react";
 import type { ChatTransport } from "ai";
 import { useEffect, useMemo, useRef } from "react";
@@ -87,11 +87,11 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
   return runtime;
 };
 
-/** Thread list + messages: localStorage khi `PERSIST_CHAT_TO_LOCAL_STORAGE`, không thì chỉ trong phiên. */
+/** Thread list + messages do trợ lý AI lưu theo người dùng (qua crm-backend). */
 export function usePersistentChatRuntime<
   UI_MESSAGE extends UIMessage = UIMessage,
 >(options: UseChatRuntimeOptions<UI_MESSAGE> = {}): AssistantRuntime {
-  const adapter = useLocalStorageThreadAdapter();
+  const adapter = useServerThreadAdapter();
 
   return useRemoteThreadListRuntime({
     runtimeHook: function RuntimeHook() {

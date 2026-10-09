@@ -5,7 +5,6 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { usePersistentChatRuntime } from "@/hooks/usePersistentChatRuntime";
 import { AssistantRuntimeProvider, useAui, WebSpeechDictationAdapter } from "@assistant-ui/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
-import { seedMockDemoIfNeeded } from "@/lib/chat/seed-mock-demo";
 import { EmbedAuthBridge } from "@/components/embed/embed-auth-bridge";
 import { cn } from "@/lib/utils";
 import { Maximize2Icon } from "lucide-react";
@@ -54,10 +53,6 @@ export function ChatbotPage({
     const fullscreenUrl = process.env.NEXT_PUBLIC_EMBED_FULLSCREEN_URL?.trim();
     if (fullscreenUrl) window.location.assign(fullscreenUrl);
   };
-
-  useEffect(() => {
-    seedMockDemoIfNeeded();
-  }, []);
 
   const runtime = usePersistentChatRuntime({
     transport: new AssistantChatTransport({ api: "/api/chat" }),
