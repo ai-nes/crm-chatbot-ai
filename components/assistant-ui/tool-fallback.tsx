@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ToolApprovalCard } from "@/components/chatbot/tool-approval";
+import { useToolLabels } from "@/hooks/useToolLabels";
 
 const ANIMATION_DURATION = 200;
 
@@ -106,7 +107,8 @@ function ToolFallbackTrigger({
     status?.type === "incomplete" && status.reason === "cancelled";
 
   const Icon = statusIconMap[statusType];
-  const label = isCancelled ? "Cancelled tool" : "Used tool";
+  const label = isCancelled ? "Đã hủy công cụ" : "Đã dùng công cụ";
+  const name = useToolLabels()[toolName] ?? toolName;
 
   return (
     <CollapsibleTrigger
@@ -133,7 +135,7 @@ function ToolFallbackTrigger({
         )}
       >
         <span>
-          {label}: <b>{toolName}</b>
+          {label}: <b>{name}</b>
         </span>
         {isRunning && (
           <span
@@ -141,7 +143,7 @@ function ToolFallbackTrigger({
             data-slot="tool-fallback-trigger-shimmer"
             className="aui-tool-fallback-trigger-shimmer shimmer pointer-events-none absolute inset-0 motion-reduce:animate-none"
           >
-            {label}: <b>{toolName}</b>
+            {label}: <b>{name}</b>
           </span>
         )}
       </span>
