@@ -1,0 +1,13 @@
+# Copy to /opt/crm-chatbot/deploy.vars on the VPS and fill in. Never commit the real file.
+# NEXT_PUBLIC_* values are compiled into the image by deploy.yml, not set here.
+
+# crm-backend base URL used by the /api/chat route (server-side).
+CRM_BACKEND_URL=https://api.faip.pro
+
+# Port the Cloudflare Tunnel hostname fpilot.faip.pro points at.
+# BIND_ADDR is 0.0.0.0 because the tunnel runs on the LXD host, outside the VPS.
+HTTP_PORT=8095
+BIND_ADDR=0.0.0.0
+
+# Optional: only needed if the chat route calls OpenAI directly.
+OPENAI_API_KEY=
