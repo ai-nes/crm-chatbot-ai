@@ -1,0 +1,35 @@
+name: crm-chatbot-prod
+
+# Production stack for the Fpilot chat UI (fpilot.faip.pro).
+#
+# Runs in the `crm` VPS next to crm-nest and crm-ai. TLS and public routing are
+# handled by the Cloudflare Tunnel (fpilot.faip.pro -> BIND_ADDR:HTTP_PORT);
+# the image is built on the same host by deploy.yml, so nothing is pulled.
+
+services:
+  web:
+    image: ${CHATBOT_IMAGE:?set CHATBOT_IMAGE}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "5173"
+      HOSTNAME: 0.0.0.0
+      # Server-side only secrets (NEXT_PUBLIC_* are baked into the image).
+      # crm-backend authenticates the user's Better Auth cookie and relays to crm-ai.
+      CRM_BACKEND_URL: ${CRM_BACKEND_URL:?set CRM_BACKEND_URL in deploy.vars}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${HTTP_PORT:-8095}:5173"
+    healthcheck:
+      # 127.0.0.1, not localhost: the standalone server binds IPv4 0.0.0.0
+      # only, while `localhost` resolves to ::1 first inside the container.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5173/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+networks:
+  default:
+    name: crm-chatbot-prod_default

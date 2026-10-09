@@ -1,28 +1,19 @@
-import { pickLatestUserMessageForUpstream } from "@/lib/chat/upstream-messages";
+import { pickMessagesForUpstream } from "@/lib/chat/upstream-messages";
+import { backendUrl, betterAuthCookies } from "@/lib/chat/backend";
 import { type UIMessage } from "ai";
 
 export const maxDuration = 300;
 
 /**
- * Frappe sessions are host-scoped rather than port-scoped. Keep only the
- * session id when relaying the browser session to Frappe's server-side
- * Copilot BFF; the other browser cookies are not part of this contract.
+ * Một lượt chat đi qua crm-backend (`/api/v1/assistant/chat`): backend xác thực
+ * phiên Better Auth của người dùng rồi chuyển tiếp cho trợ lý AI. Trình duyệt
+ * không bao giờ giữ khóa của dịch vụ AI.
  */
-function frappeSessionCookie(cookieHeader: string | null): string {
-  return (cookieHeader ?? "")
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => {
-      const [name, value] = part.split("=", 2);
-      return name === "sid" && Boolean(value) && value !== "Guest";
-    })
-    .join("; ");
-}
-
 export async function POST(req: Request) {
   const body = (await req.json()) as {
     messages?: UIMessage[];
     id?: string;
+    trigger?: string;
   };
   const messages = body.messages;
 
@@ -30,54 +21,44 @@ export async function POST(req: Request) {
     return Response.json({ error: "Tin nhắn không hợp lệ" }, { status: 400 });
   }
 
-  const latestUser = pickLatestUserMessageForUpstream(messages);
-  if (!latestUser) {
+  const upstreamMessages = pickMessagesForUpstream(messages);
+  if (!upstreamMessages) {
     return Response.json({ error: "Thiếu tin nhắn người dùng" }, { status: 400 });
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-  const frappeUrl = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "");
-  const apiKey = process.env.CHAT_API_KEY ?? "CHANGE_ME_to_a_long_random_secret";
-  const authorization = req.headers.get("authorization");
-  const sessionCookie = frappeSessionCookie(req.headers.get("cookie"));
-
-  const upstreamBody: { messages: UIMessage[]; id?: string } = {
-    messages: [latestUser],
-  };
-  if (typeof body.id === "string" && body.id.length > 0) {
-    upstreamBody.id = body.id;
+  const cookie = betterAuthCookies(req.headers.get("cookie"));
+  if (!cookie) {
+    return Response.json({ error: "Chưa đăng nhập CRM" }, { status: 401 });
   }
 
-  // Prefer Frappe's same-origin Copilot BFF whenever the browser session is
-  // available. It mints the short-lived bearer and delegation proof on the
-  // server, so the iframe never forwards a stale browser bearer to Agent.
-  const useFrappeBff = Boolean(frappeUrl && sessionCookie);
-  const upstreamUrl = useFrappeBff
-    ? `${frappeUrl}/api/method/crm.api.copilot_delegation.stream_chat`
-    : `${apiUrl}/api/v1/chat`;
-  const upstreamHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "text/event-stream",
+  const upstreamBody: { messages: UIMessage[]; id?: string; trigger?: string } = {
+    messages: upstreamMessages,
   };
+  if (typeof body.id === "string" && body.id.length > 0) upstreamBody.id = body.id;
+  if (typeof body.trigger === "string") upstreamBody.trigger = body.trigger;
 
-  if (useFrappeBff) {
-    upstreamHeaders.Cookie = sessionCookie;
-    const csrfToken = req.headers.get("x-frappe-csrf-token");
-    if (csrfToken) upstreamHeaders["X-Frappe-CSRF-Token"] = csrfToken;
-  } else {
-    upstreamHeaders["x-api-key"] = apiKey;
-    if (authorization) upstreamHeaders.Authorization = authorization;
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${backendUrl()}/api/v1/assistant/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        Cookie: cookie,
+      },
+      body: JSON.stringify(upstreamBody),
+      signal: req.signal,
+    });
+  } catch {
+    return Response.json({ error: "Không kết nối được crm-backend" }, { status: 502 });
   }
-
-  const upstream = await fetch(upstreamUrl, {
-    method: "POST",
-    headers: upstreamHeaders,
-    body: JSON.stringify(upstreamBody),
-  });
 
   if (!upstream.ok) {
     const text = await upstream.text().catch(() => "");
-    return Response.json({ error: text || upstream.statusText }, { status: upstream.status });
+    return Response.json(
+      { error: errorMessageOf(text) || upstream.statusText },
+      { status: upstream.status },
+    );
   }
 
   return new Response(upstream.body, {
@@ -85,6 +66,24 @@ export async function POST(req: Request) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      // Luồng UI message của AI SDK v6 cần header này để client nhận diện.
+      "x-vercel-ai-ui-message-stream": "v1",
     },
   });
+}
+
+/** crm-backend answers `{error:{message}}`, crm-ai `{detail}`; show the sentence, not the JSON. */
+function errorMessageOf(text: string): string {
+  try {
+    const parsed = JSON.parse(text) as {
+      error?: { message?: string } | string;
+      detail?: unknown;
+    };
+    if (typeof parsed.error === "string") return parsed.error;
+    if (parsed.error?.message) return parsed.error.message;
+    if (typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    // Not JSON: keep the text as is.
+  }
+  return text;
 }

@@ -5,14 +5,11 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { usePersistentChatRuntime } from "@/hooks/usePersistentChatRuntime";
 import { AssistantRuntimeProvider, useAui, WebSpeechDictationAdapter } from "@assistant-ui/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
-import { pickLatestUserMessageForUpstream } from "@/lib/chat/upstream-messages";
 import { seedMockDemoIfNeeded } from "@/lib/chat/seed-mock-demo";
 import { EmbedAuthBridge } from "@/components/embed/embed-auth-bridge";
 import { cn } from "@/lib/utils";
-import { useAppSelector } from "@/lib/redux/hooks";
-import { selectAuthToken } from "@/lib/redux/slices/authSlice";
 import { Maximize2Icon } from "lucide-react";
-import type { UIMessage } from "ai";
+import { lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { useEffect, useState } from "react";
 
 type ChatbotPageProps = {
@@ -30,7 +27,6 @@ export function ChatbotPage({
 }: ChatbotPageProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const authToken = useAppSelector(selectAuthToken);
   const showHistorySidebar = !fullscreen && !popover;
 
   const handleExpand = () => {
@@ -64,29 +60,9 @@ export function ChatbotPage({
   }, []);
 
   const runtime = usePersistentChatRuntime({
-    transport: new AssistantChatTransport({
-      api: "/api/chat",
-      fetch: async (input, init) => {
-        const headers = new Headers(init?.headers);
-        if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
-
-        if (init?.body && typeof init.body === "string") {
-          const parsed = JSON.parse(init.body) as {
-            messages?: UIMessage[];
-          };
-          const latest = parsed.messages ? pickLatestUserMessageForUpstream(parsed.messages) : null;
-          if (latest) {
-            init = {
-              ...init,
-              headers,
-              body: JSON.stringify({ ...parsed, messages: [latest] }),
-            };
-          }
-        }
-
-        return fetch(input, { ...init, headers });
-      },
-    }),
+    transport: new AssistantChatTransport({ api: "/api/chat" }),
+    // Sau khi duyệt/từ chối một thao tác, gửi lại để trợ lý chạy tiếp.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     adapters: {
       dictation: new WebSpeechDictationAdapter({ language: "vi-VN" }),
     },
