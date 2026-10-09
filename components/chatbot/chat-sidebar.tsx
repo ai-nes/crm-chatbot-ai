@@ -2,6 +2,7 @@
 
 import { ThreadList } from "@/components/assistant-ui/thread-list";
 import { Button } from "@/components/ui/button";
+import { MemoryPanel } from "@/components/chatbot/memory-panel";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea, ScrollAreaViewport, ScrollBar } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -106,6 +107,9 @@ const SidebarPanel: FC<{
       </ScrollAreaViewport>
       <ScrollBar />
     </ScrollArea>
+    <div className={cn("shrink-0 border-t border-(--claude-border) p-2", collapsed && "flex justify-center")}>
+      <MemoryPanel collapsed={collapsed} />
+    </div>
   </aside>
 );
 

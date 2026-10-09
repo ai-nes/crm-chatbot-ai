@@ -28,6 +28,7 @@ import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotating-headline";
 import { VoiceOrb } from "@/components/assistant-ui/voice";
 import { CitationHints } from "@/components/chatbot/citation-hints";
+import { StreamNotices } from "@/components/chatbot/stream-notice";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
@@ -434,6 +435,7 @@ const AssistantMessage: FC = () => {
             <ThinkingLoading className="max-w-[min(100%,32rem)]" />
           ) : null}
           <CitationHints />
+          <StreamNotices />
           <MessageError />
         </div>
 
