@@ -291,7 +291,7 @@ Theo dữ liệu CRM, khách hàng đang ở trạng thái VIP.
 
 Lấy danh sách hội thoại hoặc messages của một thread.
 
-> **Lưu ý:** UI hiện tại lưu thread trong `localStorage`. GET API là contract cho backend CRM — cần implement phía server khi sync lịch sử.
+> **Lưu ý:** UI hiện lấy lịch sử từ `GET /api/threads` và `GET /api/threads/{id}` (đổi tên: `PATCH`, xóa: `DELETE`), chuyển tiếp tới crm-backend `/api/v1/assistant/threads`. Mục này chỉ còn là contract tham khảo.
 
 ### Request
 
@@ -418,7 +418,7 @@ curl "http://localhost:3000/api/chat?threadId=thread-demo-1" \
 
 1. **GET** — load sidebar / restore session (khi có backend).
 2. **POST** — user gửi tin (FE gửi full `messages` tới Next) → Next chỉ chuyển **user message mới nhất** + `id` thread → CRM stream trả lời.
-3. **Lưu messages** — hiện tại client (`localStorage`); production nên persist qua backend sau mỗi lượt chat.
+3. **Lưu messages** — trợ lý AI lưu theo người dùng ngay trong lượt chat; UI chỉ đọc lại qua `/api/threads`.
 
 ---
 
