@@ -36,7 +36,7 @@ const MemoryNotice: FC<{ id?: string; text: string }> = ({ id, text }) => {
         <span>Đã quên: {text}</span>
       ) : (
         <>
-          <span className="min-w-0 wrap-break-word">Đã ghi nhớ: {text}</span>
+          <span className="min-w-0 wrap-break-word">Đã lưu: {text}</span>
           {id ? (
             <button
               type="button"

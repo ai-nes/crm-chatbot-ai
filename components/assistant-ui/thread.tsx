@@ -351,6 +351,14 @@ const AssistantMessage: FC = () => {
     )
   );
   const messageParts = useAuiState((s) => s.message.parts);
+  const messageIndex = useAuiState((s) => s.message.index);
+  const previousMessage = useAuiState((s) => s.thread.messages[messageIndex - 1]);
+  const isRememberActionResult =
+    previousMessage?.role === "user" &&
+    previousMessage.metadata.custom.assistantAction === "remember-conversation" &&
+    messageParts.some(
+      (part) => part.type === "tool-call" && part.toolName === "remember",
+    );
   // A tool waiting for the user's approval must not hide inside a collapsed group.
   const awaitsApproval = messageParts.some(
     (part) =>
@@ -409,28 +417,13 @@ const AssistantMessage: FC = () => {
                 }
                 case "group-tool":
                   {
-                    const toolNames = part.indices.flatMap((index) => {
-                      const groupedPart = messageParts[index];
-                      return groupedPart?.type === "tool-call"
-                        ? [groupedPart.toolName]
-                        : [];
-                    });
-                    const hasStudentContextTools =
-                      toolNames.includes("get_student") &&
-                      toolNames.includes("get_timeline");
                     const toolGroupLabel = awaitsApproval
                       ? "Cần bạn xác nhận thao tác"
-                      : hasStudentContextTools
-                        ? part.status.type === "running"
-                          ? "Fpilot đang tìm hiểu hồ sơ học sinh…"
-                          : part.status.type === "incomplete"
-                            ? "Fpilot chưa hoàn tất việc tổng hợp hồ sơ"
-                            : "Fpilot đã tổng hợp hồ sơ học sinh"
-                        : part.status.type === "running"
-                          ? `Fpilot đang xử lý ${part.indices.length} bước hỗ trợ…`
-                          : part.status.type === "incomplete"
-                            ? `Fpilot chưa hoàn tất ${part.indices.length} bước hỗ trợ`
-                            : `Fpilot đã hoàn tất ${part.indices.length} bước hỗ trợ`;
+                      : part.status.type === "running"
+                        ? "Fpilot đang phân tích…"
+                        : part.status.type === "incomplete"
+                          ? "Fpilot chưa phân tích xong"
+                          : "Fpilot đã phân tích";
 
                   return (
                     <ToolGroupRoot open={awaitsApproval ? true : undefined}>
@@ -444,7 +437,7 @@ const AssistantMessage: FC = () => {
                   );
                   }
                 case "text":
-                  return <AssistantText />;
+                  return isRememberActionResult ? null : <AssistantText />;
                 case "reasoning":
                   return <Reasoning {...part} />;
                 case "tool-call":
@@ -483,6 +476,10 @@ const AssistantMessage: FC = () => {
 
 const AssistantActionBar: FC = () => {
   const aui = useAui();
+  const messageParts = useAuiState((s) => s.message.parts);
+  const hasRememberToolCall = messageParts.some(
+    (part) => part.type === "tool-call" && part.toolName === "remember",
+  );
 
   const rememberConversation = () => {
     aui.thread().append({
@@ -490,7 +487,7 @@ const AssistantActionBar: FC = () => {
       content: [
         {
           type: "text",
-          text: "Ghi nhớ cuộc trò chuyện này. Hãy lưu một ghi chú ngắn về những thông tin hữu ích cho các lần trao đổi sau, không lưu toàn bộ transcript.",
+          text: "Hãy xem lại những nội dung người dùng và trợ lý đã trao đổi trước yêu cầu này. Chỉ lưu bằng công cụ remember các thông tin hữu ích lâu dài thành ghi chú ngắn; không lưu lời chào, yêu cầu ghi nhớ hay toàn bộ transcript. Nếu không có thông tin phù hợp để lưu thì không gọi remember và chỉ trả lời ngắn gọn rằng cuộc trò chuyện chưa có thông tin phù hợp.",
         },
       ],
       metadata: { custom: { assistantAction: "remember-conversation" } },
@@ -503,7 +500,7 @@ const AssistantActionBar: FC = () => {
       autohide="not-last"
       className="aui-assistant-action-bar-root -ms-1 flex gap-0.5 text-(--claude-muted)"
     >
-      <Button
+      {!hasRememberToolCall ? <Button
         type="button"
         variant="ghost"
         size="sm"
@@ -512,7 +509,7 @@ const AssistantActionBar: FC = () => {
       >
         <BrainIcon className="size-3.5" />
         Ghi nhớ cuộc trò chuyện
-      </Button>
+      </Button> : null}
       <ActionBarPrimitive.Copy
         render={
           <TooltipIconButton
