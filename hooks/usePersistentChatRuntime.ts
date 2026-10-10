@@ -13,31 +13,9 @@ import {
   type UseChatRuntimeOptions,
 } from "@assistant-ui/react-ai-sdk";
 import { useServerThreadAdapter } from "@/lib/chat/server-thread-adapter";
+import { createStudentThreadAdapter } from "@/lib/chat/student-thread-adapter";
 import { useChat, type UIMessage } from "@ai-sdk/react";
-import type { ChatTransport } from "ai";
-import { useEffect, useMemo, useRef } from "react";
-
-const useDynamicChatTransport = <UI_MESSAGE extends UIMessage = UIMessage>(
-  transport: ChatTransport<UI_MESSAGE>,
-): ChatTransport<UI_MESSAGE> => {
-  const transportRef = useRef(transport);
-  useEffect(() => {
-    transportRef.current = transport;
-  });
-  return useMemo(
-    () =>
-      new Proxy(transportRef.current, {
-        get(_, prop) {
-          const res =
-            transportRef.current[prop as keyof ChatTransport<UI_MESSAGE>];
-          return typeof res === "function"
-            ? res.bind(transportRef.current)
-            : res;
-        },
-      }),
-    [],
-  );
-};
+import { useMemo } from "react";
 
 const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
   options?: UseChatRuntimeOptions<UI_MESSAGE>,
@@ -53,14 +31,16 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
     onResume,
     ...chatOptions
   } = options ?? {};
+  void _isDisabled;
+  void _isSendDisabled;
+  void _unstable_capabilities;
+  void _suggestions;
   true satisfies keyof typeof chatOptions &
     keyof ExternalStoreSharedOptions extends never
     ? true
     : never;
 
-  const transport = useDynamicChatTransport(
-    transportOptions ?? new AssistantChatTransport(),
-  );
+  const transport = transportOptions ?? new AssistantChatTransport();
 
   const id = useAuiState((s) => s.threadListItem.id);
   const aui = useAui();
@@ -90,8 +70,13 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
 /** Thread list + messages do trợ lý AI lưu theo người dùng (qua crm-backend). */
 export function usePersistentChatRuntime<
   UI_MESSAGE extends UIMessage = UIMessage,
->(options: UseChatRuntimeOptions<UI_MESSAGE> = {}): AssistantRuntime {
-  const adapter = useServerThreadAdapter();
+>(options: UseChatRuntimeOptions<UI_MESSAGE> = {}, studentId?: string): AssistantRuntime {
+  const studentAdapter = useMemo(
+    () => (studentId ? createStudentThreadAdapter(studentId) : null),
+    [studentId],
+  );
+  const serverAdapter = useServerThreadAdapter();
+  const adapter = studentAdapter ?? serverAdapter;
 
   return useRemoteThreadListRuntime({
     runtimeHook: function RuntimeHook() {

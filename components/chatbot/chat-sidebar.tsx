@@ -30,6 +30,7 @@ type ChatSidebarProps = {
   onCollapse?: () => void;
   collapsed?: boolean;
   onExpand?: () => void;
+  allowArchive?: boolean;
 };
 
 const SidebarPanel: FC<{
@@ -37,7 +38,8 @@ const SidebarPanel: FC<{
   closeLabel: string;
   collapsed?: boolean;
   onExpand?: () => void;
-}> = ({ onClose, closeLabel, collapsed = false, onExpand }) => (
+  allowArchive?: boolean;
+}> = ({ onClose, closeLabel, collapsed = false, onExpand, allowArchive = true }) => (
   <aside
     data-collapsed={collapsed || undefined}
     className="flex h-full w-full flex-col bg-[var(--claude-surface)]"
@@ -103,7 +105,7 @@ const SidebarPanel: FC<{
     </div>
     <ScrollArea className="min-h-0 w-full flex-1">
       <ScrollAreaViewport className="pb-4">
-        <ThreadList collapsed={collapsed} />
+        <ThreadList collapsed={collapsed} allowArchive={allowArchive} />
       </ScrollAreaViewport>
       <ScrollBar />
     </ScrollArea>
@@ -119,6 +121,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   onCollapse,
   collapsed,
   onExpand,
+  allowArchive = true,
 }) => {
   const isMobile = useIsMobile();
 
@@ -131,7 +134,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
           showCloseButton={false}
         >
           <SheetTitle className="sr-only">Danh sách hội thoại</SheetTitle>
-          <SidebarPanel onClose={() => onOpenChange?.(false)} closeLabel="Đóng sidebar" />
+          <SidebarPanel onClose={() => onOpenChange?.(false)} closeLabel="Đóng sidebar" allowArchive={allowArchive} />
         </SheetContent>
       </Sheet>
     );
@@ -141,6 +144,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
     <SidebarPanel
       collapsed={collapsed}
       onExpand={onExpand}
+      allowArchive={allowArchive}
       onClose={() => onCollapse?.()}
       closeLabel="Thu gọn sidebar"
     />

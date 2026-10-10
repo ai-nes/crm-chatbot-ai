@@ -9,13 +9,14 @@ import { EmbedAuthBridge } from "@/components/embed/embed-auth-bridge";
 import { cn } from "@/lib/utils";
 import { Maximize2Icon } from "lucide-react";
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 type ChatbotPageProps = {
   embedded?: boolean;
   popover?: boolean;
   fullscreen?: boolean;
   onExpand?: () => void;
+  studentId?: string;
 };
 
 export function ChatbotPage({
@@ -23,10 +24,11 @@ export function ChatbotPage({
   popover = false,
   fullscreen = false,
   onExpand,
+  studentId,
 }: ChatbotPageProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const showHistorySidebar = !fullscreen && !popover;
+  const showHistorySidebar = Boolean(studentId) || (!popover && (!fullscreen || !embedded));
 
   const handleExpand = () => {
     if (onExpand) {
@@ -54,14 +56,22 @@ export function ChatbotPage({
     if (fullscreenUrl) window.location.assign(fullscreenUrl);
   };
 
+  const transport = useMemo(
+    () => new AssistantChatTransport({
+      api: studentId
+        ? `/api/chat?student_id=${encodeURIComponent(studentId)}`
+        : "/api/chat",
+    }),
+    [studentId],
+  );
   const runtime = usePersistentChatRuntime({
-    transport: new AssistantChatTransport({ api: "/api/chat" }),
+    transport,
     // Sau khi duyệt/từ chối một thao tác, gửi lại để trợ lý chạy tiếp.
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     adapters: {
       dictation: new WebSpeechDictationAdapter({ language: "vi-VN" }),
     },
-  });
+  }, studentId);
 
   const aui = useAui();
 
@@ -80,6 +90,7 @@ export function ChatbotPage({
               collapsed={!sidebarExpanded}
               onExpand={() => setSidebarExpanded(true)}
               onCollapse={() => setSidebarExpanded(false)}
+              allowArchive={!studentId}
             />
           }
         >

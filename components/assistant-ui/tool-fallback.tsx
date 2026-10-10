@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ToolApprovalCard } from "@/components/chatbot/tool-approval";
-import { useToolLabels } from "@/hooks/useToolLabels";
+import { useToolLabels } from "@/components/assistant-ui/tool-label-provider";
 
 const ANIMATION_DURATION = 200;
 
@@ -85,6 +85,49 @@ function ToolFallbackRoot({
 
 type ToolStatus = ToolCallMessagePartStatus["type"];
 
+const toolLabels: Record<string, { running: string; complete: string }> = {
+  calculate: { running: "Đang tính toán…", complete: "Đã tính toán" },
+  complete_task: { running: "Đang hoàn thành việc…", complete: "Đã hoàn thành việc" },
+  create_task: { running: "Đang tạo việc cần làm…", complete: "Đã tạo việc cần làm" },
+  find_students: { running: "Đang tìm học sinh…", complete: "Đã tìm học sinh" },
+  find_tools: { running: "Đang tìm bước hỗ trợ phù hợp…", complete: "Đã tìm bước hỗ trợ phù hợp" },
+  forget: { running: "Đang xoá ghi nhớ…", complete: "Đã xoá ghi nhớ" },
+  get_student: { running: "Đang đọc hồ sơ học sinh…", complete: "Đã đọc hồ sơ học sinh" },
+  get_timeline: { running: "Đang xem lịch sử chăm sóc…", complete: "Đã xem lịch sử chăm sóc" },
+  list_my_changes: { running: "Đang xem thay đổi gần đây…", complete: "Đã xem thay đổi gần đây" },
+  list_my_tasks: { running: "Đang xem việc cần làm…", complete: "Đã xem việc cần làm" },
+  remember: { running: "Đang lưu ghi nhớ…", complete: "Đã ghi nhớ" },
+  search_knowledge: { running: "Đang tra cứu tài liệu…", complete: "Đã tra cứu tài liệu" },
+  search_memory: { running: "Đang tìm ghi nhớ…", complete: "Đã tìm ghi nhớ" },
+  update_memory: { running: "Đang cập nhật ghi nhớ…", complete: "Đã cập nhật ghi nhớ" },
+  update_student: { running: "Đang cập nhật hồ sơ học sinh…", complete: "Đã cập nhật hồ sơ học sinh" },
+  update_task_due: { running: "Đang cập nhật hạn việc…", complete: "Đã cập nhật hạn việc" },
+  revert_change: { running: "Đang hoàn tác thay đổi…", complete: "Đã hoàn tác thay đổi" },
+};
+
+function getToolStatusLabel(
+  toolName: string,
+  status: ToolStatus,
+  dynamicLabel?: string,
+): string {
+  const labels = toolLabels[toolName];
+
+  if (status === "running") {
+    return labels?.running ?? (dynamicLabel
+      ? `Fpilot đang thực hiện: ${dynamicLabel.toLocaleLowerCase()}…`
+      : "Fpilot đang thực hiện bước hỗ trợ…");
+  }
+  if (status === "complete") {
+    return labels?.complete ?? (dynamicLabel
+      ? `Đã hoàn tất: ${dynamicLabel}`
+      : "Fpilot đã hoàn tất bước hỗ trợ");
+  }
+  if (status === "requires-action") return "Cần bạn xác nhận thao tác";
+  return dynamicLabel
+    ? `Chưa hoàn tất: ${dynamicLabel}`
+    : "Fpilot chưa hoàn tất bước hỗ trợ";
+}
+
 const statusIconMap: Record<ToolStatus, React.ElementType> = {
   running: LoaderIcon,
   complete: CheckIcon,
@@ -95,11 +138,13 @@ const statusIconMap: Record<ToolStatus, React.ElementType> = {
 function ToolFallbackTrigger({
   toolName,
   status,
+  dynamicLabel,
   className,
   ...props
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
   toolName: string;
   status?: ToolCallMessagePartStatus;
+  dynamicLabel?: string;
 }) {
   const statusType = status?.type ?? "complete";
   const isRunning = statusType === "running";
@@ -107,8 +152,9 @@ function ToolFallbackTrigger({
     status?.type === "incomplete" && status.reason === "cancelled";
 
   const Icon = statusIconMap[statusType];
-  const label = isCancelled ? "Đã hủy công cụ" : "Đã dùng công cụ";
-  const name = useToolLabels()[toolName] ?? toolName;
+  const label = isCancelled
+    ? "Đã dừng"
+    : getToolStatusLabel(toolName, statusType, dynamicLabel);
 
   return (
     <CollapsibleTrigger
@@ -134,16 +180,14 @@ function ToolFallbackTrigger({
           isCancelled && "text-muted-foreground line-through",
         )}
       >
-        <span>
-          {label}: <b>{name}</b>
-        </span>
+        <span>{label}</span>
         {isRunning && (
           <span
             aria-hidden
             data-slot="tool-fallback-trigger-shimmer"
             className="aui-tool-fallback-trigger-shimmer shimmer pointer-events-none absolute inset-0 motion-reduce:animate-none"
           >
-            {label}: <b>{name}</b>
+            {label}
           </span>
         )}
       </span>
@@ -226,7 +270,7 @@ function ToolFallbackResult({
       )}
       {...props}
     >
-      <p className="aui-tool-fallback-result-header font-semibold">Result:</p>
+      <p className="aui-tool-fallback-result-header font-semibold">Kết quả:</p>
       <pre className="aui-tool-fallback-result-content whitespace-pre-wrap">
         {typeof result === "string" ? result : JSON.stringify(result, null, 2)}
       </pre>
@@ -253,7 +297,7 @@ function ToolFallbackError({
   if (!errorText) return null;
 
   const isCancelled = status.reason === "cancelled";
-  const headerText = isCancelled ? "Cancelled reason:" : "Error:";
+  const headerText = isCancelled ? "Lý do đã dừng:" : "Lỗi:";
 
   return (
     <div
@@ -280,6 +324,7 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
   approval,
   respondToApproval,
 }) => {
+  const dynamicToolLabels = useToolLabels();
   const isCancelled =
     status?.type === "incomplete" && status.reason === "cancelled";
 
@@ -297,7 +342,11 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
     <ToolFallbackRoot
       className={cn(isCancelled && "border-muted-foreground/30 bg-muted/30")}
     >
-      <ToolFallbackTrigger toolName={toolName} status={status} />
+      <ToolFallbackTrigger
+        toolName={toolName}
+        status={status}
+        dynamicLabel={dynamicToolLabels[toolName]}
+      />
       <ToolFallbackContent>
         <ToolFallbackError status={status} />
         <ToolFallbackArgs

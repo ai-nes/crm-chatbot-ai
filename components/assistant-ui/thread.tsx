@@ -25,6 +25,7 @@ import {
   ToolGroupTrigger,
 } from "@/components/assistant-ui/tool-group";
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
+import { ToolLabelsProvider } from "@/components/assistant-ui/tool-label-provider";
 import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotating-headline";
 import { VoiceOrb } from "@/components/assistant-ui/voice";
 import { CitationHints } from "@/components/chatbot/citation-hints";
@@ -83,7 +84,8 @@ const ComposerTooltipButton: FC<
 
 export const Thread: FC = () => {
   return (
-    <ThreadPrimitive.Root
+    <ToolLabelsProvider>
+      <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container grid h-full min-h-0 min-w-0 max-w-full flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-(--claude-bg)"
       style={{
         ["--thread-max-width" as string]: "56rem",
@@ -120,7 +122,8 @@ export const Thread: FC = () => {
           </p>
         </div>
       </div>
-    </ThreadPrimitive.Root>
+      </ThreadPrimitive.Root>
+    </ToolLabelsProvider>
   );
 };
 
@@ -404,15 +407,41 @@ const AssistantMessage: FC = () => {
                   );
                 }
                 case "group-tool":
+                  {
+                    const toolNames = part.indices.flatMap((index) => {
+                      const groupedPart = messageParts[index];
+                      return groupedPart?.type === "tool-call"
+                        ? [groupedPart.toolName]
+                        : [];
+                    });
+                    const hasStudentContextTools =
+                      toolNames.includes("get_student") &&
+                      toolNames.includes("get_timeline");
+                    const toolGroupLabel = awaitsApproval
+                      ? "Cần bạn xác nhận thao tác"
+                      : hasStudentContextTools
+                        ? part.status.type === "running"
+                          ? "Fpilot đang tìm hiểu hồ sơ học sinh…"
+                          : part.status.type === "incomplete"
+                            ? "Fpilot chưa hoàn tất việc tổng hợp hồ sơ"
+                            : "Fpilot đã tổng hợp hồ sơ học sinh"
+                        : part.status.type === "running"
+                          ? `Fpilot đang xử lý ${part.indices.length} bước hỗ trợ…`
+                          : part.status.type === "incomplete"
+                            ? `Fpilot chưa hoàn tất ${part.indices.length} bước hỗ trợ`
+                            : `Fpilot đã hoàn tất ${part.indices.length} bước hỗ trợ`;
+
                   return (
                     <ToolGroupRoot open={awaitsApproval ? true : undefined}>
                       <ToolGroupTrigger
                         count={part.indices.length}
+                        label={toolGroupLabel}
                         active={part.status.type === "running"}
                       />
                       <ToolGroupContent>{children}</ToolGroupContent>
                     </ToolGroupRoot>
                   );
+                  }
                 case "text":
                   return <AssistantText />;
                 case "reasoning":

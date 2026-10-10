@@ -12,15 +12,16 @@ import {
   ThreadListItemPrimitive,
   ThreadListPrimitive,
 } from "@assistant-ui/react";
-import { MoreHorizontalIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { ArchiveIcon, MoreHorizontalIcon, PlusIcon, TrashIcon } from "lucide-react";
 import type { FC } from "react";
 import { cn } from "@/lib/utils";
 
 type ThreadListProps = {
   collapsed?: boolean;
+  allowArchive?: boolean;
 };
 
-export const ThreadList: FC<ThreadListProps> = ({ collapsed = false }) => {
+export const ThreadList: FC<ThreadListProps> = ({ collapsed = false, allowArchive = true }) => {
   return (
     <ThreadListPrimitive.Root className="aui-root aui-thread-list-root flex flex-col">
       <ThreadListNew collapsed={collapsed} />
@@ -43,7 +44,7 @@ export const ThreadList: FC<ThreadListProps> = ({ collapsed = false }) => {
           <ThreadListSkeleton />
         </AuiIf>
         <AuiIf condition={(s) => !s.threads.isLoading}>
-          <ThreadListPrimitive.Items>{() => <ThreadListItem />}</ThreadListPrimitive.Items>
+          <ThreadListPrimitive.Items>{() => <ThreadListItem allowArchive={allowArchive} />}</ThreadListPrimitive.Items>
         </AuiIf>
       </div>
     </ThreadListPrimitive.Root>
@@ -101,7 +102,7 @@ const ThreadListSkeleton: FC = () => {
   );
 };
 
-const ThreadListItem: FC = () => {
+const ThreadListItem: FC<{ allowArchive: boolean }> = ({ allowArchive }) => {
   return (
     <ThreadListItemPrimitive.Root className="aui-thread-list-item group flex h-10 items-center gap-1 rounded-xl transition-colors hover:bg-[#f3f4f6] focus-visible:bg-[#f3f4f6] focus-visible:outline-none data-active:bg-[#f3f4f6]">
       <ThreadListItemPrimitive.Trigger
@@ -112,12 +113,12 @@ const ThreadListItem: FC = () => {
           <ThreadListItemPrimitive.Title fallback="Cuộc trò chuyện mới" />
         </span>
       </ThreadListItemPrimitive.Trigger>
-      <ThreadListItemMore />
+      <ThreadListItemMore allowArchive={allowArchive} />
     </ThreadListItemPrimitive.Root>
   );
 };
 
-const ThreadListItemMore: FC = () => {
+const ThreadListItemMore: FC<{ allowArchive: boolean }> = ({ allowArchive }) => {
   return (
     <ThreadListItemMorePrimitive.Root>
       <ThreadListItemMorePrimitive.Trigger
@@ -137,6 +138,14 @@ const ThreadListItemMore: FC = () => {
         align="start"
         className="aui-thread-list-item-more-content z-50 min-w-36 overflow-hidden rounded-xl border border-(--claude-border) bg-(--claude-surface) p-1 shadow-lg"
       >
+        {allowArchive && <ThreadListItemPrimitive.Archive
+          render={
+            <ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none select-none hover:bg-[#f3f4f6]" />
+          }
+        >
+          <ArchiveIcon className="size-4" />
+          Lưu trữ
+        </ThreadListItemPrimitive.Archive>}
         <ThreadListItemPrimitive.Delete
           render={
             <ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-red-600 outline-none select-none hover:bg-red-50" />

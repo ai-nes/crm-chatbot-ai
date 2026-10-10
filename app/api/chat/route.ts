@@ -36,10 +36,17 @@ export async function POST(req: Request) {
   };
   if (typeof body.id === "string" && body.id.length > 0) upstreamBody.id = body.id;
   if (typeof body.trigger === "string") upstreamBody.trigger = body.trigger;
+  const studentParams = new URL(req.url).searchParams.getAll("student_id");
+  const studentId = studentParams[0]?.trim();
+  if (studentParams.length > 1 || (studentParams.length === 1 && !studentId)) {
+    return Response.json({ error: "student_id không hợp lệ" }, { status: 400 });
+  }
+  const upstreamUrl = new URL(`${backendUrl()}/api/v1/assistant/chat`);
+  if (studentId) upstreamUrl.searchParams.set("student_id", studentId);
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${backendUrl()}/api/v1/assistant/chat`, {
+    upstream = await fetch(upstreamUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
