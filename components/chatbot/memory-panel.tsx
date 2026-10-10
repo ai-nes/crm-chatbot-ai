@@ -94,7 +94,7 @@ export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) 
               </>
             ) : notes.length === 0 ? (
               <p className="text-sm text-(--claude-muted)">
-                Trợ lý chưa nhớ gì. Hãy nói &ldquo;nhớ giúp tôi…&rdquo; để thêm ghi chú.
+                Trợ lý chưa ghi nhớ điều gì. Chọn &ldquo;Ghi nhớ cuộc trò chuyện&rdquo; dưới câu trả lời để lưu một ghi chú cho lần sau.
               </p>
             ) : (
               notes.map((note) => (

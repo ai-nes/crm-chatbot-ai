@@ -52,6 +52,7 @@ import { useComposerCancel, useComposerDictate, useComposerSend } from "@assista
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  BrainIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -481,12 +482,37 @@ const AssistantMessage: FC = () => {
 };
 
 const AssistantActionBar: FC = () => {
+  const aui = useAui();
+
+  const rememberConversation = () => {
+    aui.thread().append({
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: "Ghi nhớ cuộc trò chuyện này. Hãy lưu một ghi chú ngắn về những thông tin hữu ích cho các lần trao đổi sau, không lưu toàn bộ transcript.",
+        },
+      ],
+      metadata: { custom: { assistantAction: "remember-conversation" } },
+    });
+  };
+
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
       autohide="not-last"
       className="aui-assistant-action-bar-root -ms-1 flex gap-0.5 text-(--claude-muted)"
     >
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={rememberConversation}
+        className="h-7 gap-1.5 px-2 text-xs text-(--claude-muted) hover:bg-(--claude-card) hover:text-(--claude-text)"
+      >
+        <BrainIcon className="size-3.5" />
+        Ghi nhớ cuộc trò chuyện
+      </Button>
       <ActionBarPrimitive.Copy
         render={
           <TooltipIconButton
@@ -543,6 +569,13 @@ const AssistantActionBar: FC = () => {
 };
 
 const UserMessage: FC = () => {
+  const isRememberAction = useAuiState(
+    (state) =>
+      state.message.metadata.custom.assistantAction === "remember-conversation",
+  );
+
+  if (isRememberAction) return null;
+
   return (
     <MessagePrimitive.Root
       data-slot="aui_user-message-root"
