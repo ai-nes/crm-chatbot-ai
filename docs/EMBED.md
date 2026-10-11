@@ -107,7 +107,36 @@ Chatbot cũng hỗ trợ message `{ type: "crm-chatbot:logout" }` để xóa phi
 đăng nhập trong iframe. Access token được chuyển tiếp từ `/api/chat` tới
 upstream CRM API.
 
-## 5. Lưu ý production
+## 5. Tra cứu học sinh và xác nhận đóng
+
+Trang `/embed/chatbot` nhận `studentId` làm ngữ cảnh để API kiểm tra quyền. Khi
+chat mới được mở từ hồ sơ học sinh, chatbot gửi lượt mở đầu tới AI. Câu trả lời
+của AI được lưu vào thread và xuất hiện trong lịch sử như tin nhắn trợ lý;
+yêu cầu mở đầu nội bộ không hiển thị như tin người dùng. Thread cũ không tạo lại
+lời chào khi được mở từ lịch sử.
+
+Iframe phát `crm-chatbot:lifecycle-ready`. Khi đóng, dashboard gửi
+`{ type: "crm-chatbot:request-close", requestId }`. Iframe trả
+`crm-chatbot:close-pending` nếu cần hỏi ghi nhớ, rồi `crm-chatbot:close-approved`
+với cùng `requestId` khi người dùng chọn đóng hoặc đã lưu thành công. App cha
+chỉ chấp nhận tín hiệu từ đúng iframe và origin chatbot; iframe chỉ nhận yêu cầu
+từ parent thuộc `NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS`.
+
+Popup chỉ xuất hiện sau trao đổi mới có nội dung chưa ghi nhớ trong phiên đang
+mở. Lời chào, chỉ xem lịch sử và nội dung đã lưu không mở popup. “Ghi nhớ và
+đóng” chờ thông báo `data-memory` có ID của lượt lưu hiện tại; lỗi giữ chat mở
+để thử lại. Ghi nhớ thủ công nằm trong menu `…` của câu trả lời.
+
+Trong chat học sinh, `/api/memory?student_id=...` chuyển bộ lọc qua CRM backend
+đến crm-ai. Backend kiểm tra quyền hồ sơ và lọc ghi chú trước khi trả dữ liệu.
+Ghi chú mới của học sinh được gắn ngữ cảnh tại server; prompt và công cụ trí nhớ
+không đọc ghi chú thuộc học sinh khác. Ghi chú cũ chưa gắn học sinh vẫn là ghi
+chú chung của người dùng.
+
+Local dashboard cần thêm `http://localhost:3000,http://127.0.0.1:3000` vào
+`NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS` và khởi động lại chatbot khi đổi biến này.
+
+## 6. Lưu ý production
 
 - HTTPS là bắt buộc nếu app cha và chatbot chạy khác domain.
 - Backend API phải cho phép CORS từ origin của chatbot nếu frontend gọi API

@@ -44,7 +44,7 @@ function getReferrerOrigin(): string | null {
   }
 }
 
-function isAllowedOrigin(origin: string): boolean {
+export function isAllowedOrigin(origin: string): boolean {
   const configuredOrigins = getConfiguredOrigins();
 
   if (configuredOrigins.includes("*")) return true;
@@ -55,7 +55,7 @@ function isAllowedOrigin(origin: string): boolean {
   return origin === window.location.origin;
 }
 
-function getReadyTargetOrigin(): string {
+export function getReadyTargetOrigin(): string {
   const referrerOrigin = getReferrerOrigin();
   if (referrerOrigin && isAllowedOrigin(referrerOrigin)) return referrerOrigin;
 

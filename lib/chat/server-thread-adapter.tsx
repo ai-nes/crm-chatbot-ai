@@ -13,9 +13,16 @@ import { createSimpleTitleAdapter, RuntimeAdapterProvider } from "@assistant-ui/
 import { useAui, type AssistantClient } from "@assistant-ui/store";
 import { createAssistantStream, type AssistantStream } from "assistant-stream";
 import type { UIMessage } from "ai";
-import { type FC, type PropsWithChildren, useMemo, useState } from "react";
+import { type FC, type PropsWithChildren, useMemo } from "react";
+import { observeThreadLoad, type ThreadLoadObserver } from "@/lib/chat/thread-load-observer";
+import { STUDENT_OPENING_GREETING_ACTION } from "@/components/chatbot/student-chat-context";
 
-type ServerThread = { id: string; title: string | null; updated_at: string };
+type ServerThread = {
+  id: string;
+  title: string | null;
+  student_id?: string | null;
+  updated_at: string;
+};
 
 async function call(path: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(`/api/threads${path}`, { cache: "no-store", ...init });
@@ -28,6 +35,7 @@ const metadataOf = (thread: ServerThread): RemoteThreadMetadata => ({
   externalId: undefined,
   status: "regular",
   title: thread.title ?? undefined,
+  custom: { studentId: thread.student_id ?? null },
 });
 
 /**
@@ -35,18 +43,28 @@ const metadataOf = (thread: ServerThread): RemoteThreadMetadata => ({
  * ngay trong lượt chat, nên append/update ở đây không gửi gì đi.
  */
 class ServerThreadHistoryAdapter implements ThreadHistoryAdapter {
-  constructor(private aui: AssistantClient) {}
+  constructor(
+    private aui: AssistantClient,
+    private observer?: ThreadLoadObserver
+  ) {}
 
   withFormat<TMessage, TStorageFormat extends Record<string, unknown>>(
     // Tin nhắn đã ở dạng UIMessage của AI SDK v6 nên không cần mã hoá/giải mã.
     ...[]: [MessageFormatAdapter<TMessage, TStorageFormat>?]
   ) {
     const aui = this.aui;
+    const observer = this.observer;
     return {
       async load() {
         const remoteId = aui.threadListItem().getState().remoteId;
         if (!remoteId) return { messages: [] };
-        const stored = (await (await call(`/${encodeURIComponent(remoteId)}`)).json()) as UIMessage[];
+        const stored = await observeThreadLoad(
+          "messages",
+          observer,
+          async () =>
+            (await (await call(`/${encodeURIComponent(remoteId)}`)).json()) as UIMessage[],
+          remoteId
+        );
         const messages = stored.map((message, index) => ({
           parentId: index === 0 ? null : stored[index - 1]!.id,
           message: message as TMessage,
@@ -68,20 +86,25 @@ class ServerThreadHistoryAdapter implements ThreadHistoryAdapter {
   async append() {}
 }
 
-const HistoryProvider: FC<PropsWithChildren> = ({ children }) => {
+const HistoryProvider: FC<PropsWithChildren<{ observer?: ThreadLoadObserver }>> = ({
+  children,
+  observer,
+}) => {
   const aui = useAui();
-  const history = useMemo(() => new ServerThreadHistoryAdapter(aui), [aui]);
+  const history = useMemo(() => new ServerThreadHistoryAdapter(aui, observer), [aui, observer]);
   const adapters = useMemo(() => ({ history }), [history]);
   return <RuntimeAdapterProvider adapters={adapters}>{children}</RuntimeAdapterProvider>;
 };
 
-export function createServerThreadAdapter(): RemoteThreadListAdapter {
+export function createServerThreadAdapter(observer?: ThreadLoadObserver): RemoteThreadListAdapter {
   const titles = createSimpleTitleAdapter();
 
   const listThreads = async () => (await (await call("")).json()) as ServerThread[];
 
   return {
-    unstable_Provider: HistoryProvider,
+    unstable_Provider: function ServerHistoryProvider({ children }) {
+      return <HistoryProvider observer={observer}>{children}</HistoryProvider>;
+    },
 
     async list(): Promise<RemoteThreadListResponse> {
       return { threads: (await listThreads()).map(metadataOf) };
@@ -120,8 +143,18 @@ export function createServerThreadAdapter(): RemoteThreadListAdapter {
     },
 
     // Máy chủ đã đặt tên theo câu hỏi đầu tiên; chỉ hiển thị ngay trong phiên.
-    async generateTitle(_remoteId: string, messages: readonly ThreadMessage[]): Promise<AssistantStream> {
-      const title = await titles.generateTitle(messages);
+    async generateTitle(
+      _remoteId: string,
+      messages: readonly ThreadMessage[]
+    ): Promise<AssistantStream> {
+      const firstUser = messages.find((message) => message.role === "user");
+      const metadata = firstUser?.metadata as
+        | { custom?: { assistantAction?: string } }
+        | undefined;
+      const title =
+        metadata?.custom?.assistantAction === STUDENT_OPENING_GREETING_ACTION
+          ? "Tra cứu hồ sơ học sinh"
+          : await titles.generateTitle(messages);
       return createAssistantStream((controller) => {
         controller.appendText(title);
       });
@@ -129,7 +162,6 @@ export function createServerThreadAdapter(): RemoteThreadListAdapter {
   };
 }
 
-export function useServerThreadAdapter() {
-  const [adapter] = useState(createServerThreadAdapter);
-  return adapter;
+export function useServerThreadAdapter(observer?: ThreadLoadObserver) {
+  return useMemo(() => createServerThreadAdapter(observer), [observer]);
 }
