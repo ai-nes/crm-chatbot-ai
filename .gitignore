@@ -42,3 +42,8 @@ next-env.d.ts
 
 # CodeGraph local index
 .codegraph/
+
+# Local plans, Cloudflare config, and browser automation artifacts
+/plans/
+/.cloudflare/
+/.playwright-mcp/
