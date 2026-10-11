@@ -18,7 +18,8 @@ import { StudentChatContext } from "@/components/chatbot/student-chat-context";
 import { cn } from "@/lib/utils";
 import { Maximize2Icon } from "lucide-react";
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { getReadyTargetOrigin, isAllowedOrigin } from "@/components/embed/embed-auth-bridge";
 
 type ChatbotPageProps = {
   embedded?: boolean;
@@ -28,20 +29,145 @@ type ChatbotPageProps = {
   studentId?: string;
 };
 
+function createStudentScopedTransport(
+  studentScopeRef: MutableRefObject<string | undefined>,
+  threadScopesRef: MutableRefObject<Map<string, string | undefined>>,
+) {
+  return new AssistantChatTransport({
+    api: "/api/chat",
+    prepareSendMessagesRequest: (options) => {
+      const scopedStudentId = threadScopesRef.current.has(options.id)
+        ? threadScopesRef.current.get(options.id)
+        : studentScopeRef.current;
+      const url = new URL(options.api, window.location.origin);
+      if (scopedStudentId) url.searchParams.set("student_id", scopedStudentId);
+      return {
+        api: `${url.pathname}${url.search}`,
+        body: {
+          ...options.body,
+          id: options.id,
+          messages: options.messages,
+          trigger: options.trigger,
+          messageId: options.messageId,
+          metadata: options.requestMetadata,
+        },
+      };
+    },
+  });
+}
+
 function StudentChatContextBridge({
   studentId,
+  studentScopeRef,
+  threadScopesRef,
   children,
 }: {
   studentId?: string;
+  studentScopeRef: MutableRefObject<string | undefined>;
+  threadScopesRef: MutableRefObject<Map<string, string | undefined>>;
   children: ReactNode;
 }) {
-  const activeStudentId = useAuiState((state) => {
-    const custom = state.threadListItem.custom;
-    if (custom && Object.prototype.hasOwnProperty.call(custom, "studentId")) {
-      return typeof custom.studentId === "string" ? custom.studentId : undefined;
+  const aui = useAui();
+  const threadId = useAuiState((state) => state.threadListItem.id);
+  const custom = useAuiState((state) => state.threadListItem.custom);
+  const [activeStudentId, setActiveStudentId] = useState(studentId);
+  const previousThreadId = useRef(threadId);
+  const pendingStudentScope = useRef<{ fromThreadId: string; studentId: string } | null>(null);
+
+  const setScope = useCallback((targetThreadId: string, nextStudentId?: string) => {
+    threadScopesRef.current.set(targetThreadId, nextStudentId);
+    studentScopeRef.current = nextStudentId;
+    setActiveStudentId(nextStudentId);
+  }, [studentScopeRef, threadScopesRef]);
+
+  useEffect(() => {
+    if (threadId !== previousThreadId.current) {
+      const pending = pendingStudentScope.current;
+      if (pending && pending.fromThreadId === previousThreadId.current) {
+        pendingStudentScope.current = null;
+        setScope(threadId, pending.studentId);
+      } else if (custom && Object.prototype.hasOwnProperty.call(custom, "studentId")) {
+        setScope(threadId, typeof custom.studentId === "string" ? custom.studentId : undefined);
+      } else {
+        setScope(threadId, studentScopeRef.current);
+      }
+      previousThreadId.current = threadId;
+    } else if (custom && Object.prototype.hasOwnProperty.call(custom, "studentId")) {
+      const metadataStudentId = typeof custom.studentId === "string" ? custom.studentId : undefined;
+      if (metadataStudentId !== studentScopeRef.current) setScope(threadId, metadataStudentId);
+    } else if (studentId && !threadScopesRef.current.has(threadId)) {
+      setScope(threadId, studentId);
     }
-    return studentId;
-  });
+  }, [custom, setScope, studentId, studentScopeRef, threadId, threadScopesRef]);
+
+  useEffect(() => {
+    if (window.parent === window) return;
+
+    const targetOrigin = getReadyTargetOrigin();
+    window.parent.postMessage({ type: "crm-chatbot:student-scope-ready" }, targetOrigin);
+    const handleMessage = async (event: MessageEvent<unknown>) => {
+      if (event.source !== window.parent || !isAllowedOrigin(event.origin)) return;
+      const data = event.data as {
+        type?: unknown;
+        studentId?: unknown;
+        requestId?: unknown;
+      } | null;
+      if (data?.type !== "crm-chatbot:set-student-scope") return;
+      if (typeof data.studentId !== "string" || !data.studentId.trim()) {
+        window.parent.postMessage(
+          { type: "crm-chatbot:student-scope-ack", requestId: data.requestId, ok: false },
+          event.origin,
+        );
+        return;
+      }
+
+      const requestedStudentId = data.studentId.trim();
+      const threadCustom = aui.threadListItem().getState().custom;
+      const currentThreadId = aui.threadListItem().getState().id;
+      const hasSavedScope = threadCustom && Object.prototype.hasOwnProperty.call(threadCustom, "studentId");
+      const savedStudentId = hasSavedScope && typeof threadCustom.studentId === "string"
+        ? threadCustom.studentId
+        : undefined;
+      const currentScope = hasSavedScope
+        ? savedStudentId
+        : threadScopesRef.current.has(currentThreadId)
+          ? threadScopesRef.current.get(currentThreadId)
+          : studentScopeRef.current;
+
+      try {
+        if (currentScope && currentScope !== requestedStudentId) {
+          pendingStudentScope.current = {
+            fromThreadId: currentThreadId,
+            studentId: requestedStudentId,
+          };
+          studentScopeRef.current = requestedStudentId;
+          setActiveStudentId(requestedStudentId);
+          await aui.threads().switchToNewThread();
+        } else {
+          setScope(currentThreadId, requestedStudentId);
+        }
+        window.parent.postMessage(
+          {
+            type: "crm-chatbot:student-scope-ack",
+            requestId: data.requestId,
+            ok: true,
+            studentId: requestedStudentId,
+          },
+          event.origin,
+        );
+      } catch {
+        pendingStudentScope.current = null;
+        setScope(currentThreadId, currentScope);
+        window.parent.postMessage(
+          { type: "crm-chatbot:student-scope-ack", requestId: data.requestId, ok: false },
+          event.origin,
+        );
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [aui, setScope, studentScopeRef, threadScopesRef]);
 
   return (
     <StudentChatContext.Provider value={{ studentId: activeStudentId }}>
@@ -59,7 +185,10 @@ export function ChatbotPage({
 }: ChatbotPageProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const compactPopover = popover && !fullscreen;
+  const [hostExpanded, setHostExpanded] = useState(!popover || fullscreen);
+  const compactPopover = popover && !hostExpanded;
+  const studentScopeRef = useRef(studentId);
+  const threadScopesRef = useRef(new Map<string, string | undefined>());
   const [listError, setListError] = useState<string | null>(null);
   const [loadTracker] = useState(createThreadLoadTracker);
   const observeLoad = useCallback<ThreadLoadObserver>(
@@ -70,7 +199,7 @@ export function ChatbotPage({
     [loadTracker]
   );
   const showHistorySidebar =
-    !compactPopover && (Boolean(studentId) || (!popover && (!fullscreen || !embedded)));
+    !compactPopover && (popover || Boolean(studentId) || (!popover && (!fullscreen || !embedded)));
 
   const handleExpand = () => {
     if (onExpand) {
@@ -98,12 +227,27 @@ export function ChatbotPage({
     if (fullscreenUrl) window.location.assign(fullscreenUrl);
   };
 
+  useEffect(() => {
+    if (studentId) studentScopeRef.current = studentId;
+  }, [studentId]);
+
+  useEffect(() => {
+    if (!popover || window.parent === window) return;
+    const handleMode = (event: MessageEvent<unknown>) => {
+      if (event.source !== window.parent || !isAllowedOrigin(event.origin)) return;
+      const data = event.data as { type?: unknown; mode?: unknown } | null;
+      if (data?.type !== "crm-chatbot:student-fpilot-mode") return;
+      setHostExpanded(data.mode === "expanded");
+    };
+    window.addEventListener("message", handleMode);
+    return () => window.removeEventListener("message", handleMode);
+  }, [popover]);
+
   const transport = useMemo(
-    () =>
-      new AssistantChatTransport({
-        api: studentId ? `/api/chat?student_id=${encodeURIComponent(studentId)}` : "/api/chat",
-      }),
-    [studentId]
+    // The ref is read by the transport only when a request starts, after render.
+    // eslint-disable-next-line react-hooks/refs
+    () => createStudentScopedTransport(studentScopeRef, threadScopesRef),
+    []
   );
   const runtime = usePersistentChatRuntime(
     {
@@ -114,7 +258,7 @@ export function ChatbotPage({
         dictation: new WebSpeechDictationAdapter({ language: "vi-VN" }),
       },
     },
-    compactPopover ? observeLoad : undefined
+    observeLoad
   );
 
   const aui = useAui();
@@ -122,8 +266,12 @@ export function ChatbotPage({
   return (
     <AssistantRuntimeProvider aui={aui} runtime={runtime}>
       {embedded ? <EmbedAuthBridge /> : null}
-      {embedded ? <ConversationCloseBridge studentFpilot={Boolean(studentId)} /> : null}
-      <StudentChatContextBridge studentId={studentId}>
+      {embedded ? <ConversationCloseBridge studentFpilot={popover || Boolean(studentId)} /> : null}
+      <StudentChatContextBridge
+        studentId={studentId}
+        studentScopeRef={studentScopeRef}
+        threadScopesRef={threadScopesRef}
+      >
         <div className={cn("claude-chat overflow-hidden", embedded ? "h-full" : "h-dvh")}>
           <ChatShell
             embedded={embedded}

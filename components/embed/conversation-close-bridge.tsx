@@ -70,9 +70,9 @@ export function ConversationCloseBridge({ studentFpilot = false }: { studentFpil
       if (
         studentFpilot &&
         data?.type === "crm-chatbot:student-fpilot-mode" &&
-        (data.mode === "expanded" || data.mode === "minimized")
+        (data.mode === "expanded" || data.mode === "compact" || data.mode === "minimized")
       ) {
-        studentFpilotMode.current = data.mode;
+        studentFpilotMode.current = data.mode === "expanded" ? "expanded" : "minimized";
         return;
       }
       if (!data || data.type !== "crm-chatbot:request-close" || typeof data.requestId !== "string")
