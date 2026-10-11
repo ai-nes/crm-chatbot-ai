@@ -29,9 +29,7 @@ export default async function EmbeddedChatbotRoute({ searchParams }: EmbeddedCha
       </main>
     );
   }
-  const studentId = Array.isArray(params.studentId)
-    ? params.studentId[0]
-    : params.studentId;
+  const studentId = Array.isArray(params.studentId) ? params.studentId[0] : params.studentId;
 
   const popover = mode === "popover";
 

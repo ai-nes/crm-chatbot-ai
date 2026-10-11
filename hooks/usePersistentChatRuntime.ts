@@ -13,12 +13,12 @@ import {
   type UseChatRuntimeOptions,
 } from "@assistant-ui/react-ai-sdk";
 import { useServerThreadAdapter } from "@/lib/chat/server-thread-adapter";
-import { createStudentThreadAdapter } from "@/lib/chat/student-thread-adapter";
 import { useChat, type UIMessage } from "@ai-sdk/react";
 import { useMemo } from "react";
+import { observeThreadLoad, type ThreadLoadObserver } from "@/lib/chat/thread-load-observer";
 
 const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
-  options?: UseChatRuntimeOptions<UI_MESSAGE>,
+  options?: UseChatRuntimeOptions<UI_MESSAGE>
 ): AssistantRuntime => {
   const {
     adapters,
@@ -35,8 +35,7 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
   void _isSendDisabled;
   void _unstable_capabilities;
   void _suggestions;
-  true satisfies keyof typeof chatOptions &
-    keyof ExternalStoreSharedOptions extends never
+  true satisfies keyof typeof chatOptions & keyof ExternalStoreSharedOptions extends never
     ? true
     : never;
 
@@ -60,7 +59,7 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
   if (transport instanceof AssistantChatTransport) {
     transport.setRuntime(runtime);
     transport.__internal_setGetThreadListItem(() =>
-      aui.threadListItem.source ? aui.threadListItem() : undefined,
+      aui.threadListItem.source ? aui.threadListItem() : undefined
     );
   }
 
@@ -68,15 +67,18 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
 };
 
 /** Thread list + messages do trợ lý AI lưu theo người dùng (qua crm-backend). */
-export function usePersistentChatRuntime<
-  UI_MESSAGE extends UIMessage = UIMessage,
->(options: UseChatRuntimeOptions<UI_MESSAGE> = {}, studentId?: string): AssistantRuntime {
-  const studentAdapter = useMemo(
-    () => (studentId ? createStudentThreadAdapter(studentId) : null),
-    [studentId],
+export function usePersistentChatRuntime<UI_MESSAGE extends UIMessage = UIMessage>(
+  options: UseChatRuntimeOptions<UI_MESSAGE> = {},
+  observer?: ThreadLoadObserver
+): AssistantRuntime {
+  const serverAdapter = useServerThreadAdapter(observer);
+  const adapter = useMemo(
+    () => ({
+      ...serverAdapter,
+      list: () => observeThreadLoad("list", observer, () => serverAdapter.list()),
+    }),
+    [serverAdapter, observer]
   );
-  const serverAdapter = useServerThreadAdapter();
-  const adapter = studentAdapter ?? serverAdapter;
 
   return useRemoteThreadListRuntime({
     runtimeHook: function RuntimeHook() {

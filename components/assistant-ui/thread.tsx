@@ -30,6 +30,12 @@ import { WelcomeRotatingHeadline } from "@/components/assistant-ui/welcome-rotat
 import { VoiceOrb } from "@/components/assistant-ui/voice";
 import { CitationHints } from "@/components/chatbot/citation-hints";
 import { StreamNotices } from "@/components/chatbot/stream-notice";
+import {
+  STUDENT_OPENING_GREETING_ACTION,
+  useStudentChat,
+} from "@/components/chatbot/student-chat-context";
+import { needsConversationMemory, rememberConversation } from "@/lib/chat/conversation-memory";
+import { toast } from "sonner";
 import type { VoiceOrbState } from "@/components/assistant-ui/voice";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
@@ -47,6 +53,7 @@ import {
   ThreadPrimitive,
   useAui,
   useAuiState,
+  useAssistantRuntime,
 } from "@assistant-ui/react";
 import { useComposerCancel, useComposerDictate, useComposerSend } from "@assistant-ui/core/react";
 import {
@@ -64,7 +71,7 @@ import {
   RefreshCwIcon,
   SquareIcon,
 } from "lucide-react";
-import { useMemo, type ComponentPropsWithoutRef, type FC } from "react";
+import { useEffect, useMemo, useRef, type ComponentPropsWithoutRef, type FC } from "react";
 
 const ComposerTooltipButton: FC<
   ComponentPropsWithoutRef<"button"> & {
@@ -83,46 +90,49 @@ const ComposerTooltipButton: FC<
   </TooltipProvider>
 );
 
-export const Thread: FC = () => {
+export const Thread: FC<{ compact?: boolean }> = ({ compact = false }) => {
   return (
     <ToolLabelsProvider>
       <ThreadPrimitive.Root
-      className="aui-root aui-thread-root @container grid h-full min-h-0 min-w-0 max-w-full flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-(--claude-bg)"
-      style={{
-        ["--thread-max-width" as string]: "56rem",
-        ["--composer-radius" as string]: "28px",
-        ["--composer-padding" as string]: "14px",
-      }}
-    >
-      <ThreadPrimitive.Viewport
-        turnAnchor="top"
-        scrollToBottomOnInitialize={false}
-        scrollToBottomOnThreadSwitch={false}
-        data-slot="aui_thread-viewport"
-        className="aui-thread-scroll-viewport relative min-h-0 min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
+        className="aui-root aui-thread-root @container grid h-full min-h-0 min-w-0 max-w-full flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-(--claude-bg)"
+        style={{
+          ["--thread-max-width" as string]: "56rem",
+          ["--composer-radius" as string]: compact ? "24px" : "28px",
+          ["--composer-padding" as string]: compact ? "8px" : "14px",
+        }}
       >
-        <div className="flex min-h-full flex-col">
-          <ThreadViewportContent />
+        <ThreadPrimitive.Viewport
+          turnAnchor="top"
+          scrollToBottomOnInitialize={false}
+          scrollToBottomOnThreadSwitch={false}
+          data-slot="aui_thread-viewport"
+          className="aui-thread-scroll-viewport relative min-h-0 min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
+        >
+          <div className="flex min-h-full flex-col">
+            <ThreadViewportContent />
 
-          <ThreadPrimitive.ViewportFooter className="aui-thread-scroll-footer pointer-events-none sticky bottom-0 z-20 mt-auto flex shrink-0 justify-center border-0 bg-transparent px-4 pb-2 pt-0 shadow-none md:px-6">
-            <div className="pointer-events-auto">
-              <ThreadScrollToBottom />
-            </div>
-          </ThreadPrimitive.ViewportFooter>
-        </div>
-      </ThreadPrimitive.Viewport>
+            <ThreadPrimitive.ViewportFooter className="aui-thread-scroll-footer pointer-events-none sticky bottom-0 z-20 mt-auto flex shrink-0 justify-center border-0 bg-transparent px-4 pb-2 pt-0 shadow-none md:px-6">
+              <div className="pointer-events-auto">
+                <ThreadScrollToBottom />
+              </div>
+            </ThreadPrimitive.ViewportFooter>
+          </div>
+        </ThreadPrimitive.Viewport>
 
-      <div
-        data-slot="aui_thread-footer"
-        className="aui-thread-footer z-10 flex min-w-0 max-w-full shrink-0 flex-col gap-2 overflow-x-hidden bg-(--claude-bg) px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(245,244,239,0.95)] md:gap-3 md:px-6 md:pb-8 md:pt-4"
-      >
-        <div className="mx-auto w-full max-w-(--thread-max-width)">
-          <Composer />
-          <p className="mt-2.5 text-center text-xs text-(--claude-muted) md:mt-3">
-            Kiểm tra thông tin quan trọng.
-          </p>
+        <div
+          data-slot="aui_thread-footer"
+          className={cn(
+            "aui-thread-footer z-10 flex min-w-0 max-w-full shrink-0 flex-col gap-2 overflow-x-hidden bg-(--claude-bg) px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(245,244,239,0.95)]",
+            !compact && "md:gap-3 md:px-6 md:pb-8 md:pt-4"
+          )}
+        >
+          <div className="mx-auto w-full max-w-(--thread-max-width)">
+            <Composer compact={compact} />
+            <p className="mt-2.5 text-center text-xs text-(--claude-muted) md:mt-3">
+              Kiểm tra thông tin quan trọng.
+            </p>
+          </div>
         </div>
-      </div>
       </ThreadPrimitive.Root>
     </ToolLabelsProvider>
   );
@@ -139,11 +149,17 @@ const ThreadMessage: FC = () => {
 
 const ThreadViewportContent: FC = () => {
   const isEmpty = useAuiState((s) => s.thread.isEmpty);
+  const { studentId } = useStudentChat();
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-(--thread-max-width) flex-1 flex-col overflow-x-hidden px-4 md:px-6">
+    <ThreadContentTransition>
       {isEmpty ? (
-        <div className="aui-thread-welcome-shell flex flex-1 flex-col items-center justify-center py-6 md:py-12">
+        <div
+          className={cn(
+            "aui-thread-welcome-shell flex flex-1 flex-col",
+            studentId ? "items-stretch justify-start" : "items-center justify-center py-6 md:py-12"
+          )}
+        >
           <ThreadWelcome />
         </div>
       ) : (
@@ -154,6 +170,19 @@ const ThreadViewportContent: FC = () => {
           <ThreadPrimitive.Messages>{() => <ThreadMessage />}</ThreadPrimitive.Messages>
         </div>
       )}
+    </ThreadContentTransition>
+  );
+};
+
+const ThreadContentTransition: FC<{ children: React.ReactNode }> = ({ children }) => {
+  const threadId = useAuiState((s) => s.threads.mainThreadId);
+  return (
+    <div
+      key={threadId}
+      style={{ "--chat-enter-y": "6px" } as React.CSSProperties}
+      className="chat-view-enter mx-auto flex w-full min-w-0 max-w-(--thread-max-width) flex-1 flex-col overflow-x-hidden px-4 md:px-6"
+    >
+      {children}
     </div>
   );
 };
@@ -176,6 +205,28 @@ const ThreadScrollToBottom: FC = () => {
 
 const ThreadWelcome: FC = () => {
   const dictation = useAuiState((s) => s.composer.dictation);
+  const isEmpty = useAuiState((s) => s.thread.isEmpty);
+  const threadId = useAuiState((s) => s.threadListItem.id);
+  const remoteId = useAuiState((s) => s.threadListItem.remoteId);
+  const runtime = useAssistantRuntime();
+  const startedThread = useRef<string | null>(null);
+  const { studentId } = useStudentChat();
+
+  useEffect(() => {
+    if (!studentId || !threadId || !isEmpty || remoteId || startedThread.current === threadId)
+      return;
+    startedThread.current = threadId;
+    runtime.thread.append({
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: "Người dùng vừa mở cuộc trò chuyện từ hồ sơ học sinh. Hãy chủ động chào người đang hỏi bằng tiếng Việt, nhắc tên học sinh nếu phù hợp, rồi hỏi họ muốn tra cứu nội dung nào. Đây chỉ là lời mở đầu: không gọi công cụ, không tra cứu hay khẳng định dữ kiện nào.",
+        },
+      ],
+      metadata: { custom: { assistantAction: STUDENT_OPENING_GREETING_ACTION } },
+    });
+  }, [isEmpty, remoteId, runtime, studentId, threadId]);
 
   if (dictation) {
     const orbState: VoiceOrbState =
@@ -188,6 +239,10 @@ const ThreadWelcome: FC = () => {
         </p>
       </div>
     );
+  }
+
+  if (studentId) {
+    return null;
   }
 
   return (
@@ -217,7 +272,7 @@ const ComposerInlineDictationOrb: FC = () => {
   );
 };
 
-const Composer: FC = () => {
+const Composer: FC<{ compact: boolean }> = ({ compact }) => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full min-w-0 max-w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone
@@ -230,14 +285,26 @@ const Composer: FC = () => {
       >
         <ComposerAttachments />
         <ComposerInlineDictationOrb />
-        <ComposerPrimitive.Input
-          placeholder="Trả lời Fpilot..."
-          className="aui-composer-input max-h-40 min-h-12 w-full resize-none bg-transparent px-1 py-1 text-[15px] text-(--claude-text) outline-none placeholder:text-(--claude-muted)"
-          rows={1}
-          autoFocus
-          aria-label="Nhập tin nhắn"
-        />
-        <ComposerAction />
+        <div
+          className={cn(
+            compact
+              ? "flex min-w-0 items-end gap-1 [&_button]:size-11 min-[480px]:[&_button]:size-9"
+              : "flex flex-col gap-2"
+          )}
+        >
+          {compact && <ComposerAddAttachment />}
+          <ComposerPrimitive.Input
+            placeholder="Trả lời Fpilot..."
+            className={cn(
+              "aui-composer-input w-full resize-none bg-transparent px-1 text-[15px] text-(--claude-text) outline-none placeholder:text-(--claude-muted)",
+              compact ? "max-h-[120px] min-h-9 min-w-0 flex-1 py-2" : "max-h-40 min-h-12 py-1"
+            )}
+            rows={1}
+            autoFocus
+            aria-label="Nhập tin nhắn"
+          />
+          <ComposerAction compact={compact} />
+        </div>
       </ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
   );
@@ -309,14 +376,19 @@ const ComposerDictationButton: FC = () => {
   );
 };
 
-const ComposerAction: FC = () => {
+const ComposerAction: FC<{ compact: boolean }> = ({ compact }) => {
   const hasText = useAuiState((s) => s.composer.text.trim().length > 0);
   const isDictating = useAuiState((s) => s.composer.dictation != null);
   const showSend = hasText && !isDictating;
 
   return (
-    <div className="aui-composer-action-wrapper flex items-end justify-between gap-2 pt-1">
-      <ComposerAddAttachment />
+    <div
+      className={cn(
+        "aui-composer-action-wrapper flex items-end justify-between gap-2",
+        compact ? "shrink-0" : "pt-1"
+      )}
+    >
+      {!compact && <ComposerAddAttachment />}
       <div className="ml-auto flex items-center gap-1">
         <AuiIf condition={(s) => !s.thread.isRunning}>
           {showSend ? <ComposerSendButton /> : <ComposerDictationButton />}
@@ -356,15 +428,13 @@ const AssistantMessage: FC = () => {
   const isRememberActionResult =
     previousMessage?.role === "user" &&
     previousMessage.metadata.custom.assistantAction === "remember-conversation" &&
-    messageParts.some(
-      (part) => part.type === "tool-call" && part.toolName === "remember",
-    );
+    messageParts.some((part) => part.type === "tool-call" && part.toolName === "remember");
   // A tool waiting for the user's approval must not hide inside a collapsed group.
   const awaitsApproval = messageParts.some(
     (part) =>
       part.type === "tool-call" &&
       part.approval !== undefined &&
-      part.approval.approved === undefined,
+      part.approval.approved === undefined
   );
   const agentActivities = useMemo(
     () =>
@@ -415,15 +485,14 @@ const AssistantMessage: FC = () => {
                     </ReasoningRoot>
                   );
                 }
-                case "group-tool":
-                  {
-                    const toolGroupLabel = awaitsApproval
-                      ? "Cần bạn xác nhận thao tác"
-                      : part.status.type === "running"
-                        ? "Fpilot đang phân tích…"
-                        : part.status.type === "incomplete"
-                          ? "Fpilot chưa phân tích xong"
-                          : "Fpilot đã phân tích";
+                case "group-tool": {
+                  const toolGroupLabel = awaitsApproval
+                    ? "Cần bạn xác nhận thao tác"
+                    : part.status.type === "running"
+                      ? "Fpilot đang phân tích…"
+                      : part.status.type === "incomplete"
+                        ? "Fpilot chưa phân tích xong"
+                        : "Fpilot đã phân tích";
 
                   return (
                     <ToolGroupRoot open={awaitsApproval ? true : undefined}>
@@ -435,7 +504,7 @@ const AssistantMessage: FC = () => {
                       <ToolGroupContent>{children}</ToolGroupContent>
                     </ToolGroupRoot>
                   );
-                  }
+                }
                 case "text":
                   return isRememberActionResult ? null : <AssistantText />;
                 case "reasoning":
@@ -475,24 +544,17 @@ const AssistantMessage: FC = () => {
 };
 
 const AssistantActionBar: FC = () => {
-  const aui = useAui();
+  const runtime = useAssistantRuntime();
+  const canRemember = useAuiState((state) => needsConversationMemory(state.thread.messages));
   const messageParts = useAuiState((s) => s.message.parts);
   const hasRememberToolCall = messageParts.some(
-    (part) => part.type === "tool-call" && part.toolName === "remember",
+    (part) => part.type === "tool-call" && part.toolName === "remember"
   );
 
-  const rememberConversation = () => {
-    aui.thread().append({
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: "Hãy xem lại những nội dung người dùng và trợ lý đã trao đổi trước yêu cầu này. Chỉ lưu bằng công cụ remember các thông tin hữu ích lâu dài thành ghi chú ngắn; không lưu lời chào, yêu cầu ghi nhớ hay toàn bộ transcript. Nếu không có thông tin phù hợp để lưu thì không gọi remember và chỉ trả lời ngắn gọn rằng cuộc trò chuyện chưa có thông tin phù hợp.",
-        },
-      ],
-      metadata: { custom: { assistantAction: "remember-conversation" } },
-    });
-  };
+  const saveMemory = () =>
+    void rememberConversation(runtime)
+      .then(() => toast.success("Đã ghi nhớ cuộc trò chuyện"))
+      .catch((error: Error) => toast.error(error.message));
 
   return (
     <ActionBarPrimitive.Root
@@ -500,16 +562,6 @@ const AssistantActionBar: FC = () => {
       autohide="not-last"
       className="aui-assistant-action-bar-root -ms-1 flex gap-0.5 text-(--claude-muted)"
     >
-      {!hasRememberToolCall ? <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={rememberConversation}
-        className="h-7 gap-1.5 px-2 text-xs text-(--claude-muted) hover:bg-(--claude-card) hover:text-(--claude-text)"
-      >
-        <BrainIcon className="size-3.5" />
-        Ghi nhớ cuộc trò chuyện
-      </Button> : null}
       <ActionBarPrimitive.Copy
         render={
           <TooltipIconButton
@@ -549,11 +601,20 @@ const AssistantActionBar: FC = () => {
         <ActionBarMorePrimitive.Content
           side="bottom"
           align="start"
-          className="aui-action-bar-more-content z-50 min-w-32 overflow-hidden rounded-xl border border-(--claude-border) bg-(--claude-surface) p-1 shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
+          className="claude-chat-portal aui-action-bar-more-content z-50 min-w-32 overflow-hidden rounded-xl border border-(--claude-border) bg-(--claude-surface) p-1 text-(--claude-text) shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
         >
+          {canRemember && !hasRememberToolCall && (
+            <ActionBarMorePrimitive.Item
+              onSelect={saveMemory}
+              className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:bg-(--claude-card) focus:bg-(--claude-card) data-highlighted:bg-(--claude-card)"
+            >
+              <BrainIcon className="size-4" />
+              Ghi nhớ cuộc trò chuyện
+            </ActionBarMorePrimitive.Item>
+          )}
           <ActionBarPrimitive.ExportMarkdown
             render={
-              <ActionBarMorePrimitive.Item className="aui-action-bar-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none select-none hover:bg-(--claude-card)" />
+              <ActionBarMorePrimitive.Item className="aui-action-bar-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none select-none hover:bg-(--claude-card) focus:bg-(--claude-card) data-highlighted:bg-(--claude-card)" />
             }
           >
             <DownloadIcon className="size-4" />
@@ -566,12 +627,13 @@ const AssistantActionBar: FC = () => {
 };
 
 const UserMessage: FC = () => {
-  const isRememberAction = useAuiState(
-    (state) =>
-      state.message.metadata.custom.assistantAction === "remember-conversation",
+  const isInternalAction = useAuiState((state) =>
+    ["remember-conversation", STUDENT_OPENING_GREETING_ACTION].includes(
+      String(state.message.metadata.custom.assistantAction ?? "")
+    )
   );
 
-  if (isRememberAction) return null;
+  if (isInternalAction) return null;
 
   return (
     <MessagePrimitive.Root

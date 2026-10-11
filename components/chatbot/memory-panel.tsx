@@ -14,14 +14,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useStudentChat } from "./student-chat-context";
 
-type Note = { id: string; text: string; updated_at: string };
+type Note = { id: string; text: string; updated_at: string; student_id?: string | null };
 
 /** Ghi chú trợ lý đã nhớ về người dùng; xóa từng ghi chú để trợ lý quên. */
 export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
+  const { studentId } = useStudentChat();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -30,13 +38,19 @@ export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) 
   const load = useCallback(async () => {
     setFailed(false);
     try {
-      const res = await fetch("/api/memory", { cache: "no-store" });
+      const path = studentId ? `/api/memory?student_id=${encodeURIComponent(studentId)}` : "/api/memory";
+      const res = await fetch(path, { cache: "no-store" });
       if (!res.ok) throw new Error(String(res.status));
-      setNotes((await res.json()) as Note[]);
+      const entries = (await res.json()) as Note[];
+      setNotes(
+        studentId
+          ? entries.filter((note) => !note.student_id || note.student_id === studentId)
+          : entries
+      );
     } catch {
       setFailed(true);
     }
-  }, []);
+  }, [studentId]);
 
   const openPanel = () => {
     setOpen(true);
@@ -61,7 +75,7 @@ export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) 
         variant="ghost"
         className={cn(
           "text-(--claude-muted) hover:bg-[#f3f4f6] hover:text-(--claude-text)",
-          collapsed ? "size-9 p-0" : "w-full justify-start gap-2 px-3",
+          collapsed ? "size-9 p-0" : "w-full justify-start gap-2 px-3"
         )}
         onClick={openPanel}
         aria-label="Trí nhớ của trợ lý"
@@ -72,14 +86,21 @@ export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) 
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[360px] border-(--claude-border) bg-(--claude-surface) sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Trí nhớ của trợ lý</SheetTitle>
-            <SheetDescription>
-              Những điều trợ lý đã ghi nhớ về bạn để trả lời sát hơn. Xóa ghi chú nào bạn không muốn trợ lý giữ.
+        <SheetContent
+          side="right"
+          className="claude-chat-portal gap-0 border-(--claude-border) bg-(--claude-surface) shadow-xl data-[side=right]:w-full sm:max-w-[380px] sm:data-[side=right]:w-[380px]"
+        >
+          <SheetHeader className="gap-2 border-b border-(--claude-border) p-5 pr-12">
+            <SheetTitle className="flex items-center gap-2 text-(--claude-text)">
+              <BrainIcon className="size-4 text-(--claude-muted)" />
+              Trí nhớ của trợ lý
+            </SheetTitle>
+            <SheetDescription className="leading-relaxed text-(--claude-muted)">
+              Những điều trợ lý đã ghi nhớ về bạn để trả lời sát hơn. Xóa ghi chú nào bạn không muốn
+              trợ lý giữ.
             </SheetDescription>
           </SheetHeader>
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
             {failed ? (
               <div className="flex flex-col items-start gap-2 text-sm text-(--claude-muted)">
                 Không tải được trí nhớ.
@@ -93,8 +114,9 @@ export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) 
                 <Skeleton className="h-12 w-full rounded-lg" />
               </>
             ) : notes.length === 0 ? (
-              <p className="text-sm text-(--claude-muted)">
-                Trợ lý chưa ghi nhớ điều gì. Chọn &ldquo;Ghi nhớ cuộc trò chuyện&rdquo; dưới câu trả lời để lưu một ghi chú cho lần sau.
+              <p className="rounded-xl bg-(--claude-card) p-4 text-sm leading-relaxed text-(--claude-muted)">
+                Trợ lý chưa ghi nhớ điều gì. Chọn &ldquo;Ghi nhớ cuộc trò chuyện&rdquo; trong menu
+                &ldquo;…&rdquo; của câu trả lời để lưu một ghi chú cho lần sau.
               </p>
             ) : (
               notes.map((note) => (
@@ -102,7 +124,9 @@ export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) 
                   key={note.id}
                   className="flex items-start gap-2 rounded-lg border border-(--claude-border) bg-(--claude-card) p-3"
                 >
-                  <p className="min-w-0 flex-1 text-sm wrap-break-word text-(--claude-text)">{note.text}</p>
+                  <p className="min-w-0 flex-1 text-sm wrap-break-word text-(--claude-text)">
+                    {note.text}
+                  </p>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -120,7 +144,7 @@ export const MemoryPanel: FC<{ collapsed?: boolean }> = ({ collapsed = false }) 
       </Sheet>
 
       <AlertDialog open={target !== null} onOpenChange={(next) => !next && setTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="claude-chat-portal rounded-2xl border-(--claude-border) bg-(--claude-surface)">
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa ghi chú này?</AlertDialogTitle>
             <AlertDialogDescription>{target?.text}</AlertDialogDescription>

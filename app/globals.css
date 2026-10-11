@@ -78,7 +78,8 @@
 }
 
 /* Claude-inspired chat theme */
-.claude-chat {
+.claude-chat,
+.claude-chat-portal {
   --claude-bg: #f9fafb;
   --claude-surface: #ffffff;
   --claude-card: #f3f4f6;
@@ -90,7 +91,36 @@
   --claude-accent: #f37021;
   --claude-accent-hover: #de5713;
   --thread-max-width: 48rem;
+}
+
+.claude-chat {
   background-color: var(--claude-bg);
+}
+
+/* Portals do not inherit the chat container's theme. */
+.claude-chat-portal {
+  color: var(--claude-text);
+  font-family: var(--font-sans);
+}
+
+@keyframes chat-view-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--chat-enter-x, 0px)) translateY(var(--chat-enter-y, 0px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chat-view-enter {
+    animation: chat-view-enter 200ms ease-out both;
+  }
+  .aui-composer-input {
+    transition: height 150ms ease-out;
+  }
 }
 
 /* Chat container */
