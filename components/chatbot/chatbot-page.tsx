@@ -5,7 +5,12 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { PopoverChat } from "@/components/chatbot/popover-history";
 import { createThreadLoadTracker, type ThreadLoadObserver } from "@/lib/chat/thread-load-observer";
 import { usePersistentChatRuntime } from "@/hooks/usePersistentChatRuntime";
-import { AssistantRuntimeProvider, useAui, useAuiState, WebSpeechDictationAdapter } from "@assistant-ui/react";
+import {
+  AssistantRuntimeProvider,
+  useAui,
+  useAuiState,
+  WebSpeechDictationAdapter,
+} from "@assistant-ui/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { EmbedAuthBridge } from "@/components/embed/embed-auth-bridge";
 import { ConversationCloseBridge } from "@/components/embed/conversation-close-bridge";
@@ -13,7 +18,7 @@ import { StudentChatContext } from "@/components/chatbot/student-chat-context";
 import { cn } from "@/lib/utils";
 import { Maximize2Icon } from "lucide-react";
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 
 type ChatbotPageProps = {
   embedded?: boolean;
@@ -22,6 +27,28 @@ type ChatbotPageProps = {
   onExpand?: () => void;
   studentId?: string;
 };
+
+function StudentChatContextBridge({
+  studentId,
+  children,
+}: {
+  studentId?: string;
+  children: ReactNode;
+}) {
+  const activeStudentId = useAuiState((state) => {
+    const custom = state.threadListItem.custom;
+    if (custom && Object.prototype.hasOwnProperty.call(custom, "studentId")) {
+      return typeof custom.studentId === "string" ? custom.studentId : undefined;
+    }
+    return studentId;
+  });
+
+  return (
+    <StudentChatContext.Provider value={{ studentId: activeStudentId }}>
+      {children}
+    </StudentChatContext.Provider>
+  );
+}
 
 export function ChatbotPage({
   embedded = false,
@@ -91,19 +118,12 @@ export function ChatbotPage({
   );
 
   const aui = useAui();
-  const activeStudentId = useAuiState((state) => {
-    const custom = state.threadListItem.custom;
-    if (custom && Object.prototype.hasOwnProperty.call(custom, "studentId")) {
-      return typeof custom.studentId === "string" ? custom.studentId : undefined;
-    }
-    return studentId;
-  });
 
   return (
     <AssistantRuntimeProvider aui={aui} runtime={runtime}>
       {embedded ? <EmbedAuthBridge /> : null}
       {embedded ? <ConversationCloseBridge studentFpilot={Boolean(studentId)} /> : null}
-      <StudentChatContext.Provider value={{ studentId: activeStudentId }}>
+      <StudentChatContextBridge studentId={studentId}>
         <div className={cn("claude-chat overflow-hidden", embedded ? "h-full" : "h-dvh")}>
           <ChatShell
             embedded={embedded}
@@ -154,7 +174,7 @@ export function ChatbotPage({
             )}
           </ChatShell>
         </div>
-      </StudentChatContext.Provider>
+      </StudentChatContextBridge>
     </AssistantRuntimeProvider>
   );
 }
