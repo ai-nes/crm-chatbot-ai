@@ -139,12 +139,14 @@ function ToolFallbackTrigger({
   toolName,
   status,
   dynamicLabel,
+  expandable = false,
   className,
   ...props
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
   toolName: string;
   status?: ToolCallMessagePartStatus;
   dynamicLabel?: string;
+  expandable?: boolean;
 }) {
   const statusType = status?.type ?? "complete";
   const isRunning = statusType === "running";
@@ -159,8 +161,10 @@ function ToolFallbackTrigger({
   return (
     <CollapsibleTrigger
       data-slot="tool-fallback-trigger"
+      disabled={!expandable}
       className={cn(
         "aui-tool-fallback-trigger group/trigger flex w-full items-center gap-2 px-4 text-sm transition-colors",
+        !expandable && "cursor-default",
         className,
       )}
       {...props}
@@ -191,15 +195,17 @@ function ToolFallbackTrigger({
           </span>
         )}
       </span>
-      <ChevronDownIcon
-        data-slot="tool-fallback-trigger-chevron"
-        className={cn(
-          "aui-tool-fallback-trigger-chevron size-4 shrink-0",
-          "transition-transform duration-(--animation-duration) ease-out",
-          "group-data-[state=closed]/trigger:-rotate-90",
-          "group-data-[state=open]/trigger:rotate-0",
-        )}
-      />
+      {expandable && (
+        <ChevronDownIcon
+          data-slot="tool-fallback-trigger-chevron"
+          className={cn(
+            "aui-tool-fallback-trigger-chevron size-4 shrink-0",
+            "transition-transform duration-(--animation-duration) ease-out",
+            "group-data-[state=closed]/trigger:-rotate-90",
+            "group-data-[state=open]/trigger:rotate-0",
+          )}
+        />
+      )}
     </CollapsibleTrigger>
   );
 }
@@ -227,54 +233,6 @@ function ToolFallbackContent({
     >
       <div className="mt-3 flex flex-col gap-2 border-t pt-2">{children}</div>
     </CollapsibleContent>
-  );
-}
-
-function ToolFallbackArgs({
-  argsText,
-  className,
-  ...props
-}: React.ComponentProps<"div"> & {
-  argsText?: string;
-}) {
-  if (!argsText) return null;
-
-  return (
-    <div
-      data-slot="tool-fallback-args"
-      className={cn("aui-tool-fallback-args px-4", className)}
-      {...props}
-    >
-      <pre className="aui-tool-fallback-args-value whitespace-pre-wrap">
-        {argsText}
-      </pre>
-    </div>
-  );
-}
-
-function ToolFallbackResult({
-  result,
-  className,
-  ...props
-}: React.ComponentProps<"div"> & {
-  result?: unknown;
-}) {
-  if (result === undefined) return null;
-
-  return (
-    <div
-      data-slot="tool-fallback-result"
-      className={cn(
-        "aui-tool-fallback-result border-t border-dashed px-4 pt-2",
-        className,
-      )}
-      {...props}
-    >
-      <p className="aui-tool-fallback-result-header font-semibold">Kết quả:</p>
-      <pre className="aui-tool-fallback-result-content whitespace-pre-wrap">
-        {typeof result === "string" ? result : JSON.stringify(result, null, 2)}
-      </pre>
-    </div>
   );
 }
 
@@ -318,8 +276,6 @@ function ToolFallbackError({
 const ToolFallbackImpl: ToolCallMessagePartComponent = ({
   toolCallId,
   toolName,
-  argsText,
-  result,
   status,
   approval,
   respondToApproval,
@@ -327,6 +283,7 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
   const dynamicToolLabels = useToolLabels();
   const isCancelled =
     status?.type === "incomplete" && status.reason === "cancelled";
+  const hasErrorDetail = status?.type === "incomplete" && !!status.error;
 
   if (approval && approval.approved === undefined) {
     return (
@@ -346,14 +303,10 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
         toolName={toolName}
         status={status}
         dynamicLabel={dynamicToolLabels[toolName]}
+        expandable={hasErrorDetail}
       />
       <ToolFallbackContent>
         <ToolFallbackError status={status} />
-        <ToolFallbackArgs
-          argsText={argsText}
-          className={cn(isCancelled && "opacity-60")}
-        />
-        {!isCancelled && <ToolFallbackResult result={result} />}
       </ToolFallbackContent>
     </ToolFallbackRoot>
   );
@@ -365,8 +318,6 @@ const ToolFallback = memo(
   Root: typeof ToolFallbackRoot;
   Trigger: typeof ToolFallbackTrigger;
   Content: typeof ToolFallbackContent;
-  Args: typeof ToolFallbackArgs;
-  Result: typeof ToolFallbackResult;
   Error: typeof ToolFallbackError;
 };
 
@@ -374,8 +325,6 @@ ToolFallback.displayName = "ToolFallback";
 ToolFallback.Root = ToolFallbackRoot;
 ToolFallback.Trigger = ToolFallbackTrigger;
 ToolFallback.Content = ToolFallbackContent;
-ToolFallback.Args = ToolFallbackArgs;
-ToolFallback.Result = ToolFallbackResult;
 ToolFallback.Error = ToolFallbackError;
 
 export {
@@ -383,7 +332,5 @@ export {
   ToolFallbackRoot,
   ToolFallbackTrigger,
   ToolFallbackContent,
-  ToolFallbackArgs,
-  ToolFallbackResult,
   ToolFallbackError,
 };
