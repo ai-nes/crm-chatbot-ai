@@ -118,6 +118,13 @@ const ThreadListItem: FC<{ allowArchive: boolean }> = ({ allowArchive }) => {
   );
 };
 
+const menuItemClass =
+  "aui-thread-list-item-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm leading-5 font-normal outline-none select-none";
+const menuItemDefaultClass =
+  "text-(--claude-text) hover:bg-[#f3f4f6] data-highlighted:bg-[#f3f4f6]";
+const menuItemDangerClass =
+  "text-red-600 hover:bg-red-50 data-highlighted:bg-red-50";
+
 const ThreadListItemMore: FC<{ allowArchive: boolean }> = ({ allowArchive }) => {
   return (
     <ThreadListItemMorePrimitive.Root>
@@ -140,18 +147,18 @@ const ThreadListItemMore: FC<{ allowArchive: boolean }> = ({ allowArchive }) => 
       >
         {allowArchive && <ThreadListItemPrimitive.Archive
           render={
-            <ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none select-none hover:bg-[#f3f4f6]" />
+            <ThreadListItemMorePrimitive.Item className={cn(menuItemClass, menuItemDefaultClass)} />
           }
         >
-          <ArchiveIcon className="size-4" />
+          <ArchiveIcon className="size-4 shrink-0" />
           Lưu trữ
         </ThreadListItemPrimitive.Archive>}
         <ThreadListItemPrimitive.Delete
           render={
-            <ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-red-600 outline-none select-none hover:bg-red-50" />
+            <ThreadListItemMorePrimitive.Item className={cn(menuItemClass, menuItemDangerClass)} />
           }
         >
-          <TrashIcon className="size-4" />
+          <TrashIcon className="size-4 shrink-0" />
           Xóa
         </ThreadListItemPrimitive.Delete>
       </ThreadListItemMorePrimitive.Content>
